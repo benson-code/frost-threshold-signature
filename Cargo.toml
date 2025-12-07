@@ -1,0 +1,65 @@
+[package]
+name = "frost-threshold-signature"
+version = "0.1.0"
+edition = "2021"
+authors = ["benson-code"]
+description = "A 3-of-5 FROST threshold signature service for Bitcoin using Schnorr signatures"
+license = "MIT"
+repository = "https://github.com/benson-code/frost-threshold-signature"
+keywords = ["cryptography", "bitcoin", "frost", "threshold-signature", "schnorr"]
+categories = ["cryptography"]
+
+[dependencies]
+# FROST 協議實作 - 使用 secp256k1 曲線（比特幣相容）
+frost-secp256k1 = { version = "2.0.0", features = ["serde"] }
+
+# 隨機數生成器 - FROST 需要安全的隨機性
+rand = "0.8"
+
+# 序列化支援 - 用於可能的持久化和 API 開發
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# 十六進位編碼 - 用於友善地顯示金鑰和簽章
+hex = "0.4"
+
+# 錯誤處理 - 更好的錯誤訊息
+anyhow = "1.0"
+thiserror = "1.0"
+
+# ============ Level 2: HTTP API 依賴 ============
+
+# Web 框架 - 現代、高效能的 HTTP 伺服器
+axum = { version = "0.7", features = ["macros"] }
+
+# 異步運行時 - 提供並發執行環境
+tokio = { version = "1", features = ["full"] }
+
+# 並發安全的 HashMap - 比 Arc<Mutex<HashMap>> 更高效
+dashmap = "6.0"
+
+# UUID 生成 - 用於 Session ID
+uuid = { version = "1.10", features = ["v4", "serde"] }
+
+# Tower 中間件 - 用於日誌、CORS 等
+tower = "0.4"
+tower-http = { version = "0.5", features = ["trace", "cors"] }
+
+# 日誌系統
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# 時間處理 - 用於 Session 過期
+chrono = { version = "0.4", features = ["serde"] }
+
+# Futures 工具 - 用於並發操作
+futures = "0.3"
+
+[dev-dependencies]
+# HTTP 客戶端 - 用於示範客戶端
+reqwest = { version = "0.12", features = ["json"] }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1

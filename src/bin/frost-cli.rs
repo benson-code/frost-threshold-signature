@@ -946,7 +946,7 @@ async fn sign_message(
     State(lora_state): State<Arc<Mutex<LoRaTransportState>>>,
     axum::extract::Json(payload): axum::extract::Json<SignRequest>,
 ) -> Json<SignResponse> {
-    use frost_secp256k1_tr as frost;
+    use frost_secp256k1 as frost;
     use rand::SeedableRng;
 
     // 重置狀態

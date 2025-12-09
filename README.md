@@ -248,16 +248,74 @@ frost-threshold-signature/
 
 ---
 
+## 🧪 Testing & Verification
+
+FROST-T includes comprehensive testing tools to ensure demo reliability:
+
+### Quick Test (Recommended)
+
+**Windows:**
+```bash
+quick-test.bat
+```
+
+**Linux/Mac:**
+```bash
+chmod +x quick-test.sh
+./quick-test.sh
+```
+
+Checks: Rust environment, compilation, port availability, API endpoints, dashboard
+
+### Full Automated Test
+
+```bash
+# Terminal 1: Start server
+demo-basic.bat
+
+# Terminal 2: Run tests
+python verify_demo.py
+```
+
+Performs complete workflow testing with health checks, status monitoring, signing requests, and validation.
+
+### Testing Resources
+
+- 🧪 [TESTING-GUIDE.md](TESTING-GUIDE.md) - Complete testing documentation
+- ✅ [VERIFICATION-CHECKLIST.md](VERIFICATION-CHECKLIST.md) - Manual verification checklist
+- 🔧 `verify_demo.py` - Python automated test suite
+- ⚡ `quick-test.bat/sh` - One-click environment verification
+
+---
+
 ## 📚 Documentation
 
 - 📘 [PHASE2-README.md](PHASE2-README.md) - Complete Phase 2 documentation
 - 📗 [DEMO-README.md](DEMO-README.md) - Demo usage guide
 - 📙 [CLI-README.md](CLI-README.md) - CLI tools reference
+- 🧪 [TESTING-GUIDE.md](TESTING-GUIDE.md) - Testing & verification guide
 
-### API Endpoint
+### API Endpoints
 
+#### GET /health
+Health check endpoint
+```bash
+curl http://127.0.0.1:3000/health
 ```
-GET http://127.0.0.1:3000/status
+
+**Response:**
+```json
+{
+  "status": "ok",
+  "service": "frost-threshold-signature",
+  "version": "0.1.0"
+}
+```
+
+#### GET /status
+Current LoRa transmission state
+```bash
+curl http://127.0.0.1:3000/status
 ```
 
 **Response:**
@@ -272,6 +330,26 @@ GET http://127.0.0.1:3000/status
   "total_retries": 2
 }
 ```
+
+#### POST /sign
+Execute threshold signature
+```bash
+curl -X POST http://127.0.0.1:3000/sign \
+  -H "Content-Type: application/json" \
+  -d '{"message": "test", "signer_ids": [1, 2, 3]}'
+```
+
+**Response:**
+```json
+{
+  "signature": "a1b2c3d4...",
+  "verified": true,
+  "message": "test",
+  "signer_ids": [1, 2, 3]
+}
+```
+
+For complete API documentation, see [TESTING-GUIDE.md](TESTING-GUIDE.md#api-端點說明).
 
 ---
 

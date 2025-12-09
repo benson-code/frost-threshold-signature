@@ -888,7 +888,7 @@ async fn start_http_server(
         extract::State,
         http::Method,
         response::Json,
-        routing::get,
+        routing::{get, post},
         Router,
     };
     use tower_http::cors::{Any, CorsLayer};
@@ -896,12 +896,14 @@ async fn start_http_server(
     // CORS 設定（允許本地 HTML 存取）
     let cors = CorsLayer::new()
         .allow_origin(Any)
-        .allow_methods([Method::GET])
+        .allow_methods([Method::GET, Method::POST])
         .allow_headers(Any);
 
     // 創建 Router
     let app = Router::new()
+        .route("/health", get(health_check))
         .route("/status", get(get_status))
+        .route("/sign", post(sign_message))
         .layer(cors)
         .with_state(lora_state);
 
@@ -914,10 +916,168 @@ async fn start_http_server(
     Ok(())
 }
 
+/// GET /health - 健康檢查
+async fn health_check() -> Json<serde_json::Value> {
+    Json(serde_json::json!({
+        "status": "ok",
+        "service": "frost-threshold-signature",
+        "version": env!("CARGO_PKG_VERSION")
+    }))
+}
+
 /// GET /status - 回傳當前 LoRa 傳輸狀態
 async fn get_status(
     State(lora_state): State<Arc<Mutex<LoRaTransportState>>>,
 ) -> Json<LoRaTransportState> {
     let state = lora_state.lock().unwrap();
     Json(state.clone())
+}
+
+/// POST /sign - 執行簽章操作
+///
+/// Request Body:
+/// ```json
+/// {
+///   "message": "test message",
+///   "signer_ids": [1, 2, 3]
+/// }
+/// ```
+async fn sign_message(
+    State(lora_state): State<Arc<Mutex<LoRaTransportState>>>,
+    axum::extract::Json(payload): axum::extract::Json<SignRequest>,
+) -> Json<SignResponse> {
+    use frost_secp256k1_tr as frost;
+    use rand::SeedableRng;
+
+    // 重置狀態
+    {
+        let mut state = lora_state.lock().unwrap();
+        state.current_phase = "Starting".to_string();
+        state.progress = 0.0;
+        state.recent_events.clear();
+        state.total_retries = 0;
+    }
+
+    let mut rng = rand::rngs::StdRng::from_entropy();
+    let message_bytes = payload.message.as_bytes().to_vec();
+
+    // 執行簽章流程
+    let result: Result<SignResponse> = async {
+        // Step 1: 生成金鑰
+        {
+            let mut state = lora_state.lock().unwrap();
+            state.current_phase = "KeyGeneration".to_string();
+            state.progress = 0.1;
+        }
+
+        let (shares, pubkeys) = frost::keys::generate_with_dealer(
+            5,
+            3,
+            frost::keys::IdentifierList::Default,
+            &mut rng,
+        )
+        .map_err(|e| anyhow::anyhow!("金鑰生成失敗: {:?}", e))?;
+
+        let pubkey_package = frost::keys::PublicKeyPackage::new(pubkeys, frost::Identifier::try_from(1).unwrap());
+
+        // Step 2: Round 1
+        {
+            let mut state = lora_state.lock().unwrap();
+            state.current_phase = "Round1".to_string();
+            state.progress = 0.3;
+        }
+
+        let mut nonces = std::collections::BTreeMap::new();
+        let mut commitments = std::collections::BTreeMap::new();
+
+        for &id in &payload.signer_ids {
+            let identifier = frost::Identifier::try_from(id)
+                .map_err(|e| anyhow::anyhow!("無效的簽署者 ID {}: {:?}", id, e))?;
+
+            let share = shares.get(&identifier)
+                .ok_or_else(|| anyhow::anyhow!("找不到簽署者 {} 的金鑰分片", id))?;
+
+            let (nonce, commitment) = frost::round1::commit(share.signing_share(), &mut rng);
+            nonces.insert(identifier, nonce);
+            commitments.insert(identifier, commitment);
+
+            tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+        }
+
+        // Step 3: Round 2
+        {
+            let mut state = lora_state.lock().unwrap();
+            state.current_phase = "Round2".to_string();
+            state.progress = 0.6;
+        }
+
+        let signing_package = frost::SigningPackage::new(commitments, &message_bytes);
+        let mut signature_shares = std::collections::BTreeMap::new();
+
+        for &id in &payload.signer_ids {
+            let identifier = frost::Identifier::try_from(id).unwrap();
+            let share = shares.get(&identifier).unwrap();
+            let nonce = nonces.get(&identifier).unwrap();
+
+            let signature_share = frost::round2::sign(&signing_package, nonce, share)
+                .map_err(|e| anyhow::anyhow!("簽章分片生成失敗: {:?}", e))?;
+
+            signature_shares.insert(identifier, signature_share);
+
+            tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+        }
+
+        // Step 4: 聚合簽章
+        {
+            let mut state = lora_state.lock().unwrap();
+            state.current_phase = "Aggregating".to_string();
+            state.progress = 0.9;
+        }
+
+        let group_signature = frost::aggregate(&signing_package, &signature_shares, &pubkey_package)
+            .map_err(|e| anyhow::anyhow!("簽章聚合失敗: {:?}", e))?;
+
+        // Step 5: 驗證簽章
+        let verifying_key = pubkey_package.verifying_key();
+        let is_valid = verifying_key.verify(&message_bytes, &group_signature).is_ok();
+
+        {
+            let mut state = lora_state.lock().unwrap();
+            state.current_phase = "Complete".to_string();
+            state.progress = 1.0;
+        }
+
+        Ok(SignResponse {
+            signature: hex::encode(group_signature.serialize()),
+            verified: is_valid,
+            message: payload.message.clone(),
+            signer_ids: payload.signer_ids.clone(),
+        })
+    }.await;
+
+    match result {
+        Ok(response) => Json(response),
+        Err(e) => Json(SignResponse {
+            signature: format!("Error: {}", e),
+            verified: false,
+            message: payload.message,
+            signer_ids: payload.signer_ids,
+        }),
+    }
+}
+
+/// 簽章請求
+#[derive(serde::Deserialize)]
+struct SignRequest {
+    message: String,
+    signer_ids: Vec<u16>,
+}
+
+/// 簽章回應
+#[derive(serde::Serialize)]
+struct SignResponse {
+    signature: String,
+    verified: bool,
+    message: String,
+    signer_ids: Vec<u16>,
 }

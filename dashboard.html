@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FROST-T LoRa Dashboard | Cyberpunk Edition</title>
+    <style>
+        /* ===== Cyberpunk Theme ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            color: #0f0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Scanline effect */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.15),
+                rgba(0, 0, 0, 0.15) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        /* CRT screen glow */
+        .container {
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 20px;
+            background: rgba(0, 20, 0, 0.8);
+            border: 2px solid #0f0;
+            box-shadow:
+                0 0 20px rgba(0, 255, 0, 0.5),
+                inset 0 0 100px rgba(0, 255, 0, 0.1);
+            border-radius: 10px;
+            animation: flicker 0.15s infinite;
+        }
+
+        @keyframes flicker {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.98; }
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 20px;
+            border-bottom: 2px solid #0f0;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 36px;
+            text-shadow: 0 0 10px #0f0, 0 0 20px #0f0;
+            letter-spacing: 4px;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 0 0 10px #0f0, 0 0 20px #0f0; }
+            to { text-shadow: 0 0 20px #0f0, 0 0 30px #0f0, 0 0 40px #0f0; }
+        }
+
+        .header .subtitle {
+            font-size: 14px;
+            color: #0a0;
+            margin-top: 10px;
+            letter-spacing: 2px;
+        }
+
+        .header .status-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            background: #0f0;
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+
+        /* Grid Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .panel {
+            background: rgba(0, 40, 0, 0.6);
+            border: 1px solid #0a0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+        }
+
+        .panel h2 {
+            font-size: 18px;
+            color: #0f0;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border-bottom: 1px solid #0a0;
+            padding-bottom: 10px;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            margin: 15px 0;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 25px;
+            background: rgba(0, 20, 0, 0.8);
+            border: 1px solid #0a0;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #0a0, #0f0);
+            transition: width 0.5s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        /* RSSI Meter */
+        .rssi-meter {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .rssi-bars {
+            display: flex;
+            gap: 4px;
+            align-items: flex-end;
+        }
+
+        .rssi-bar {
+            width: 12px;
+            background: rgba(0, 255, 0, 0.3);
+            border: 1px solid #0a0;
+            transition: all 0.3s ease;
+        }
+
+        .rssi-bar.active {
+            background: #0f0;
+            box-shadow: 0 0 10px #0f0;
+        }
+
+        /* Spectrum Analyzer */
+        .spectrum {
+            display: flex;
+            align-items: flex-end;
+            height: 120px;
+            gap: 2px;
+            padding: 10px;
+            background: rgba(0, 10, 0, 0.8);
+            border: 1px solid #0a0;
+            border-radius: 4px;
+        }
+
+        .spectrum-bar {
+            flex: 1;
+            background: linear-gradient(to top, #0a0, #0f0);
+            transition: height 0.1s ease;
+            min-height: 2px;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat-item {
+            background: rgba(0, 20, 0, 0.6);
+            padding: 15px;
+            border: 1px solid #0a0;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            color: #0f0;
+            font-weight: bold;
+            text-shadow: 0 0 10px #0f0;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #0a0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Event Log */
+        .event-log {
+            background: rgba(0, 10, 0, 0.8);
+            border: 1px solid #0a0;
+            border-radius: 4px;
+            padding: 15px;
+            height: 300px;
+            overflow-y: auto;
+            font-size: 11px;
+            line-height: 1.6;
+        }
+
+        .event-log::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .event-log::-webkit-scrollbar-track {
+            background: rgba(0, 20, 0, 0.6);
+        }
+
+        .event-log::-webkit-scrollbar-thumb {
+            background: #0a0;
+            border-radius: 4px;
+        }
+
+        .event-item {
+            padding: 8px;
+            margin-bottom: 8px;
+            border-left: 2px solid #0a0;
+            padding-left: 12px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .event-item.new {
+            background: rgba(0, 255, 0, 0.1);
+            border-left-color: #0f0;
+        }
+
+        .event-time {
+            color: #0a0;
+            margin-right: 10px;
+        }
+
+        .event-type {
+            color: #0f0;
+            font-weight: bold;
+        }
+
+        /* Full Width Panel */
+        .full-panel {
+            grid-column: 1 / -1;
+        }
+
+        /* Blinking cursor */
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 16px;
+            background: #0f0;
+            margin-left: 4px;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+
+        /* Phase Indicator */
+        .phase-indicator {
+            font-size: 24px;
+            color: #0f0;
+            text-align: center;
+            padding: 20px;
+            background: rgba(0, 40, 0, 0.6);
+            border: 2px solid #0f0;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px #0f0;
+            letter-spacing: 3px;
+        }
+
+        /* Loading animation */
+        .loading {
+            text-align: center;
+            font-size: 18px;
+            padding: 40px;
+            color: #0a0;
+        }
+
+        .loading-dots::after {
+            content: '...';
+            animation: loading 1.5s infinite;
+        }
+
+        @keyframes loading {
+            0% { content: '.'; }
+            33% { content: '..'; }
+            66% { content: '...'; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>FROST-T LoRa DASHBOARD</h1>
+            <div class="subtitle">BITCOIN++ TAIPEI 2025 | 3-OF-5 THRESHOLD SIGNATURE</div>
+            <div class="status-indicator">
+                <div class="status-dot"></div>
+                <span id="connection-status">CONNECTED</span>
+            </div>
+        </div>
+
+        <div class="phase-indicator" id="current-phase">
+            SYSTEM IDLE<span class="cursor"></span>
+        </div>
+
+        <div class="dashboard-grid">
+            <!-- Progress Panel -->
+            <div class="panel">
+                <h2>📡 Transmission Progress</h2>
+                <div class="progress-container">
+                    <div class="progress-label">
+                        <span>Overall Progress</span>
+                        <span id="progress-text">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RSSI Panel -->
+            <div class="panel">
+                <h2>📶 Signal Strength (RSSI)</h2>
+                <div class="rssi-meter">
+                    <div class="rssi-bars" id="rssi-bars">
+                        <div class="rssi-bar" style="height: 20px"></div>
+                        <div class="rssi-bar" style="height: 35px"></div>
+                        <div class="rssi-bar" style="height: 50px"></div>
+                        <div class="rssi-bar" style="height: 65px"></div>
+                        <div class="rssi-bar" style="height: 80px"></div>
+                    </div>
+                    <div>
+                        <div class="stat-value" id="rssi-value">-80</div>
+                        <div class="stat-label">dBm</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Spectrum Analyzer -->
+            <div class="panel full-panel">
+                <h2>🌊 Spectrum Analyzer (Virtual)</h2>
+                <div class="spectrum" id="spectrum">
+                    <!-- Generated by JS -->
+                </div>
+            </div>
+
+            <!-- Statistics -->
+            <div class="panel">
+                <h2>📊 Statistics</h2>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="total-messages">0</div>
+                        <div class="stat-label">Total Messages</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="total-bytes">0</div>
+                        <div class="stat-label">Total Bytes</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="total-retries">0</div>
+                        <div class="stat-label">Retries</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="success-rate">100%</div>
+                        <div class="stat-label">Success Rate</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Event Log -->
+            <div class="panel">
+                <h2>📋 Event Log</h2>
+                <div class="event-log" id="event-log">
+                    <div class="loading">
+                        <span class="loading-dots">Waiting for data</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== Configuration =====
+        const API_URL = 'http://127.0.0.1:3000/status';
+        const UPDATE_INTERVAL = 1000; // 1 second
+
+        // ===== State =====
+        let previousEventCount = 0;
+        let spectrumBars = [];
+
+        // ===== Initialize Spectrum Analyzer =====
+        function initSpectrum() {
+            const spectrum = document.getElementById('spectrum');
+            for (let i = 0; i < 50; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'spectrum-bar';
+                bar.style.height = '2px';
+                spectrum.appendChild(bar);
+                spectrumBars.push(bar);
+            }
+        }
+
+        // ===== Animate Spectrum =====
+        function animateSpectrum() {
+            spectrumBars.forEach((bar, i) => {
+                const height = Math.random() * 100 + 20;
+                bar.style.height = height + 'px';
+            });
+        }
+
+        // ===== Update RSSI Display =====
+        function updateRSSI(rssi) {
+            document.getElementById('rssi-value').textContent = rssi;
+
+            // Update bars based on RSSI
+            const bars = document.querySelectorAll('.rssi-bar');
+            let activeCount = 0;
+
+            if (rssi >= -70) activeCount = 5;
+            else if (rssi >= -80) activeCount = 4;
+            else if (rssi >= -90) activeCount = 3;
+            else if (rssi >= -100) activeCount = 2;
+            else activeCount = 1;
+
+            bars.forEach((bar, i) => {
+                if (i < activeCount) {
+                    bar.classList.add('active');
+                } else {
+                    bar.classList.remove('active');
+                }
+            });
+        }
+
+        // ===== Format Event for Display =====
+        function formatEvent(event) {
+            const time = new Date().toLocaleTimeString('zh-TW', { hour12: false });
+            let text = '';
+
+            if (event.TransmitStart) {
+                const e = event.TransmitStart;
+                text = `<span class="event-type">[START]</span> ${e.from} → ${e.to} | Type: ${e.message_type} | ${e.total_bytes} bytes (${e.fragments} fragments)`;
+            } else if (event.TransmitFragment) {
+                const e = event.TransmitFragment;
+                text = `<span class="event-type">[FRAGMENT]</span> ${e.fragment_id}/${e.total_fragments} | ${e.bytes} bytes`;
+            } else if (event.PacketLost) {
+                const e = event.PacketLost;
+                text = `<span class="event-type" style="color: #f80;">[LOST]</span> Fragment ${e.fragment_id} | Retry ${e.retry_count}`;
+            } else if (event.RetrySuccess) {
+                const e = event.RetrySuccess;
+                text = `<span class="event-type">[RETRY OK]</span> Fragment ${e.fragment_id} | Retry ${e.retry_count}`;
+            } else if (event.TransmitComplete) {
+                const e = event.TransmitComplete;
+                text = `<span class="event-type" style="color: #0ff;">[COMPLETE]</span> ${e.total_time_ms}ms | ${e.retries} retries`;
+            }
+
+            return `<span class="event-time">[${time}]</span>${text}`;
+        }
+
+        // ===== Update Dashboard =====
+        async function updateDashboard() {
+            try {
+                const response = await fetch(API_URL);
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const data = await response.json();
+
+                // Update connection status
+                document.getElementById('connection-status').textContent = 'CONNECTED';
+
+                // Update phase
+                document.getElementById('current-phase').innerHTML =
+                    data.current_phase.toUpperCase() + '<span class="cursor"></span>';
+
+                // Update progress
+                const progress = Math.round(data.progress * 100);
+                document.getElementById('progress-text').textContent = progress + '%';
+                document.getElementById('progress-fill').style.width = progress + '%';
+
+                // Update RSSI
+                updateRSSI(data.rssi);
+
+                // Update statistics
+                document.getElementById('total-messages').textContent = data.total_messages;
+                document.getElementById('total-bytes').textContent = data.total_bytes.toLocaleString();
+                document.getElementById('total-retries').textContent = data.total_retries;
+
+                const successRate = data.total_messages > 0
+                    ? Math.round((1 - data.total_retries / (data.total_messages * 3)) * 100)
+                    : 100;
+                document.getElementById('success-rate').textContent = successRate + '%';
+
+                // Update event log
+                if (data.recent_events && data.recent_events.length > 0) {
+                    const eventLog = document.getElementById('event-log');
+
+                    if (data.recent_events.length > previousEventCount) {
+                        // New events arrived
+                        eventLog.innerHTML = '';
+
+                        // Show last 20 events
+                        const eventsToShow = data.recent_events.slice(-20).reverse();
+                        eventsToShow.forEach((event, index) => {
+                            const eventDiv = document.createElement('div');
+                            eventDiv.className = index === 0 ? 'event-item new' : 'event-item';
+                            eventDiv.innerHTML = formatEvent(event);
+                            eventLog.appendChild(eventDiv);
+                        });
+
+                        previousEventCount = data.recent_events.length;
+                    }
+                }
+
+            } catch (error) {
+                console.error('Failed to fetch status:', error);
+                document.getElementById('connection-status').textContent = 'DISCONNECTED';
+                document.getElementById('connection-status').style.color = '#f00';
+            }
+        }
+
+        // ===== Initialize =====
+        initSpectrum();
+
+        // Start periodic updates
+        updateDashboard();
+        setInterval(updateDashboard, UPDATE_INTERVAL);
+        setInterval(animateSpectrum, 100);
+
+        console.log('%c🎯 FROST-T Dashboard Initialized', 'color: #0f0; font-size: 16px; font-weight: bold;');
+        console.log('%cFetching from:', 'color: #0a0', API_URL);
+    </script>
+</body>
+</html>

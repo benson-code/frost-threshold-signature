@@ -630,15 +630,15 @@ async fn cmd_demo_basic(message: &str, signer_ids: &[u16], full_payload: bool) -
     // ========================================================================
     println!("🏗️  建立協調者和簽署者...");
 
-    let coordinator = Coordinator::new(pubkey_package, min_signers);
+    let coordinator = Coordinator::new(pubkey_package.clone(), min_signers);
 
+    // Create signers map with sequential IDs (1, 2, 3, 4, 5)
     let mut signers = BTreeMap::new();
-    for (identifier, key_package) in shares {
-        // Convert Identifier to u16 by serializing
-        let id_bytes = identifier.serialize();
-        let signer_id = u16::from_le_bytes([id_bytes[0], id_bytes[1]]);
-        signers.insert(signer_id, Signer::new(key_package));
-        println!("   ✓ 簽署者 {} 已就緒", signer_id);
+    let mut signer_id_counter = 1u16;
+    for (_identifier, secret_share) in shares {
+        signers.insert(signer_id_counter, Signer::new(secret_share));
+        println!("   ✓ 簽署者 {} 已就緒", signer_id_counter);
+        signer_id_counter += 1;
     }
 
     println!();

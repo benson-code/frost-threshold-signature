@@ -12,11 +12,11 @@
 //! - 協調者**永不接觸**秘密 nonces
 //! - 協調者可以是不受信任的（它無法偽造簽章）
 
-use crate::api::{CommitmentData, SessionId, SignatureShareData, SigningPackageData};
+use crate::api::{CommitmentData, SessionId, SigningPackageData};
 use crate::signer::Signer;
 use dashmap::DashMap;
 use frost_secp256k1 as frost;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::sync::Arc;
 use thiserror::Error;
 
@@ -257,14 +257,18 @@ impl Coordinator {
         let round1_results = futures::future::join_all(round1_futures).await;
 
         // 收集承諾
-        let mut commitments_map = HashMap::new();
+        let mut commitments_map = BTreeMap::new();
         for result in round1_results {
             let (identifier, commitment) = result
                 .map_err(|e| CoordinatorError::SignerError(e.to_string()))??;
 
+            // Convert Identifier back to u16 by serializing and taking first 2 bytes
+            let id_bytes = identifier.serialize();
+            let signer_id = u16::from_le_bytes([id_bytes[0], id_bytes[1]]);
+
             let commitment_data = CommitmentData {
-                signer_id: u16::from(identifier),
-                commitment: hex::encode(commitment.serialize()),
+                signer_id,
+                commitment: hex::encode(commitment.serialize().unwrap()),
             };
 
             self.add_commitment(session_id, commitment_data)?;
@@ -306,7 +310,7 @@ impl Coordinator {
         let round2_results = futures::future::join_all(round2_futures).await;
 
         // 收集簽章分片
-        let mut signature_shares = HashMap::new();
+        let mut signature_shares = BTreeMap::new();
         for result in round2_results {
             let (identifier, share) = result
                 .map_err(|e| CoordinatorError::SignerError(e.to_string()))??;
@@ -327,7 +331,7 @@ impl Coordinator {
 
         tracing::info!(
             session_id = %session_id,
-            signature = %hex::encode(group_signature.serialize()),
+            signature = %hex::encode(group_signature.serialize().unwrap()),
             "Signature aggregated successfully"
         );
 
@@ -359,7 +363,7 @@ impl Coordinator {
     pub fn aggregate_signature(
         &self,
         signing_package: &frost::SigningPackage,
-        signature_shares: &HashMap<frost::Identifier, frost::round2::SignatureShare>,
+        signature_shares: &BTreeMap<frost::Identifier, frost::round2::SignatureShare>,
     ) -> Result<frost::Signature, CoordinatorError> {
         // 檢查分片數量
         if signature_shares.len() < self.threshold as usize {

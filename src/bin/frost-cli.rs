@@ -4,16 +4,16 @@
 //! 支援在多個終端視窗模擬不同角色進行離線簽章。
 
 use anyhow::{Context, Result};
-use clap::Parser;
+use axum::{extract::State, response::Json};
 use frost_secp256k1 as frost;
 use frost_threshold_signature::cli::{commands::*, file_store::*, nonce_store::*};
 use frost_threshold_signature::transport::{
-    LoRaTransportState, MessageMetadata, MessageType, SimulatedLoRaTransport, StdoutTransport,
+    LoRaTransportState, MessageMetadata, MessageType, SimulatedLoRaTransport,
     Transport,
 };
-use frost_threshold_signature::{api::*, frost, Coordinator, Signer};
+use frost_threshold_signature::{api::*, Coordinator, Signer};
 use rand::thread_rng;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 use uuid::Uuid;
 
@@ -113,10 +113,14 @@ fn cmd_keygen(
     println!("✓ 已生成 {} 個金鑰分片（門檻值：{}）\n", max_signers, min_signers);
 
     // 儲存每個金鑰分片
-    for (identifier, key_package) in shares {
-        let signer_id = u16::from(identifier);
+    for (identifier, secret_share) in shares {
+        let id_bytes = identifier.serialize();
+        let signer_id = u16::from_le_bytes([id_bytes[0], id_bytes[1]]);
         let share_path = output_dir.join(format!("share_{}.json", signer_id));
 
+        // Convert SecretShare to KeyPackage for storage
+        let key_package = frost::keys::KeyPackage::try_from(secret_share)
+            .map_err(|e| anyhow::anyhow!("Failed to convert SecretShare to KeyPackage: {:?}", e))?;
         FileStore::save_key_share(&share_path, signer_id, &key_package, min_signers, max_signers)?;
 
         println!("  📄 簽署者 {} → {}", signer_id, share_path.display());
@@ -128,7 +132,7 @@ fn cmd_keygen(
 
     let group_pubkey = pubkey_package.verifying_key();
     println!("\n  🔓 群組公鑰 → {}", pubkey_path.display());
-    println!("     {}", hex::encode(group_pubkey.serialize()));
+    println!("     {}", hex::encode(group_pubkey.serialize().unwrap()));
 
     println!("\n✅ 金鑰生成完成！");
     println!("\n💡 下一步：");
@@ -152,7 +156,8 @@ fn cmd_round1(
     let key_package = FileStore::load_key_share(share_file)
         .context("無法載入金鑰分片")?;
 
-    let signer_id = u16::from(key_package.identifier());
+    let id_bytes = key_package.identifier().serialize();
+    let signer_id = u16::from_le_bytes([id_bytes[0], id_bytes[1]]);
     println!("✓ 已載入簽署者 {} 的金鑰分片", signer_id);
 
     // 讀取訊息
@@ -180,7 +185,7 @@ fn cmd_round1(
 
     println!("\n✓ 已生成 Nonce 承諾");
     if verbose {
-        println!("  承諾 (hex): {}...", &hex::encode(commitments.serialize())[..32]);
+        println!("  承諾 (hex): {}...", &hex::encode(commitments.serialize().unwrap())[..32]);
     }
 
     // ⚠️ Demo Only: 持久化秘密 Nonce
@@ -287,7 +292,8 @@ fn cmd_round2(
     let key_package = FileStore::load_key_share(share_file)
         .context("無法載入金鑰分片")?;
 
-    let signer_id = u16::from(key_package.identifier());
+    let id_bytes = key_package.identifier().serialize();
+    let signer_id = u16::from_le_bytes([id_bytes[0], id_bytes[1]]);
     println!("✓ 已載入簽署者 {} 的金鑰分片", signer_id);
 
     // 載入簽章套件
@@ -317,7 +323,7 @@ fn cmd_round2(
     let message = hex::decode(&package_file_data.message_hex)
         .context("無法解碼訊息")?;
 
-    let mut commitments_map = HashMap::new();
+    let mut commitments_map = BTreeMap::new();
     for commitment_data in &package_file_data.commitments {
         let identifier = frost::Identifier::try_from(commitment_data.signer_id)
             .map_err(|e| anyhow::anyhow!("無效的簽署者 ID: {:?}", e))?;
@@ -390,7 +396,10 @@ fn cmd_aggregate(
     let signature_shares_map = FileStore::load_signature_shares_map(share_files)
         .context("載入簽章分片失敗")?;
 
-    let signer_ids: Vec<u16> = signature_shares_map.keys().map(|id| u16::from(*id)).collect();
+    let signer_ids: Vec<u16> = signature_shares_map.keys().map(|id| {
+        let id_bytes = id.serialize();
+        u16::from_le_bytes([id_bytes[0], id_bytes[1]])
+    }).collect();
     for (i, id) in signer_ids.iter().enumerate() {
         println!("  {} ✓ 簽署者 {}", i + 1, id);
     }
@@ -401,7 +410,7 @@ fn cmd_aggregate(
     let message = hex::decode(&package_file_data.message_hex)
         .context("無法解碼訊息")?;
 
-    let mut commitments_map = HashMap::new();
+    let mut commitments_map = BTreeMap::new();
     for commitment_data in &package_file_data.commitments {
         let identifier = frost::Identifier::try_from(commitment_data.signer_id)
             .map_err(|e| anyhow::anyhow!("無效的簽署者 ID: {:?}", e))?;
@@ -424,7 +433,7 @@ fn cmd_aggregate(
         .map_err(|e| anyhow::anyhow!("聚合簽章失敗: {}", e))?;
 
     println!("\n✓ 簽章聚合成功");
-    println!("  簽章 (hex): {}", hex::encode(group_signature.serialize()));
+    println!("  簽章 (hex): {}", hex::encode(group_signature.serialize().unwrap()));
 
     // 驗證簽章
     coordinator.verify_signature(&message, &group_signature)
@@ -487,7 +496,7 @@ fn cmd_verify(
         .context("無法載入群組公鑰")?;
 
     let group_pubkey = pubkey_package.verifying_key();
-    println!("✓ 群組公鑰: {}...", &hex::encode(group_pubkey.serialize())[..32]);
+    println!("✓ 群組公鑰: {}...", &hex::encode(group_pubkey.serialize().unwrap())[..32]);
 
     // 驗證簽章
     println!("\n開始驗證...");
@@ -611,7 +620,7 @@ async fn cmd_demo_basic(message: &str, signer_ids: &[u16], full_payload: bool) -
 
     let group_pubkey = pubkey_package.verifying_key();
     println!("✓ 已生成 {} 個金鑰分片（門檻值：{}）", max_signers, min_signers);
-    println!("✓ 群組公鑰: {}...", &hex::encode(group_pubkey.serialize())[..32]);
+    println!("✓ 群組公鑰: {}...", &hex::encode(group_pubkey.serialize().unwrap())[..32]);
     println!();
 
     tokio::time::sleep(tokio::time::Duration::from_millis(800)).await;
@@ -623,9 +632,11 @@ async fn cmd_demo_basic(message: &str, signer_ids: &[u16], full_payload: bool) -
 
     let coordinator = Coordinator::new(pubkey_package, min_signers);
 
-    let mut signers = HashMap::new();
+    let mut signers = BTreeMap::new();
     for (identifier, key_package) in shares {
-        let signer_id = u16::from(identifier);
+        // Convert Identifier to u16 by serializing
+        let id_bytes = identifier.serialize();
+        let signer_id = u16::from_le_bytes([id_bytes[0], id_bytes[1]]);
         signers.insert(signer_id, Signer::new(key_package));
         println!("   ✓ 簽署者 {} 已就緒", signer_id);
     }
@@ -653,7 +664,7 @@ async fn cmd_demo_basic(message: &str, signer_ids: &[u16], full_payload: bool) -
 
     tokio::time::sleep(tokio::time::Duration::from_millis(800)).await;
 
-    let mut commitments_map = HashMap::new();
+    let mut commitments_map = BTreeMap::new();
     let mut commitment_data_vec = Vec::new();
 
     for &signer_id in signer_ids {
@@ -664,7 +675,7 @@ async fn cmd_demo_basic(message: &str, signer_ids: &[u16], full_payload: bool) -
             .commit(session_id)
             .context(format!("簽署者 {} 生成承諾失敗", signer_id))?;
 
-        let commitment_hex = hex::encode(commitment.serialize());
+        let commitment_hex = hex::encode(commitment.serialize().unwrap());
 
         // 模擬傳輸：Signer -> Coordinator
         transport.send(
@@ -743,7 +754,7 @@ async fn cmd_demo_basic(message: &str, signer_ids: &[u16], full_payload: bool) -
 
     tokio::time::sleep(tokio::time::Duration::from_millis(800)).await;
 
-    let mut signature_shares_map = HashMap::new();
+    let mut signature_shares_map = BTreeMap::new();
 
     for &signer_id in signer_ids {
         let signer = signers.get(&signer_id).unwrap();
@@ -786,7 +797,7 @@ async fn cmd_demo_basic(message: &str, signer_ids: &[u16], full_payload: bool) -
         .aggregate_signature(&signing_package, &signature_shares_map)
         .context("聚合簽章失敗")?;
 
-    let signature_hex = hex::encode(group_signature.serialize());
+    let signature_hex = hex::encode(group_signature.serialize().unwrap());
     println!("✓ 簽章聚合成功！");
     println!("   簽章 (hex): {}", signature_hex);
     println!();
@@ -970,15 +981,13 @@ async fn sign_message(
             state.progress = 0.1;
         }
 
-        let (shares, pubkeys) = frost::keys::generate_with_dealer(
+        let (shares, pubkey_package) = frost::keys::generate_with_dealer(
             5,
             3,
             frost::keys::IdentifierList::Default,
             &mut rng,
         )
         .map_err(|e| anyhow::anyhow!("金鑰生成失敗: {:?}", e))?;
-
-        let pubkey_package = frost::keys::PublicKeyPackage::new(pubkeys, frost::Identifier::try_from(1).unwrap());
 
         // Step 2: Round 1
         {
@@ -1019,7 +1028,9 @@ async fn sign_message(
             let share = shares.get(&identifier).unwrap();
             let nonce = nonces.get(&identifier).unwrap();
 
-            let signature_share = frost::round2::sign(&signing_package, nonce, share)
+            let key_package = frost::keys::KeyPackage::try_from(share.clone())
+                .map_err(|e| anyhow::anyhow!("KeyPackage 轉換失敗: {:?}", e))?;
+            let signature_share = frost::round2::sign(&signing_package, nonce, &key_package)
                 .map_err(|e| anyhow::anyhow!("簽章分片生成失敗: {:?}", e))?;
 
             signature_shares.insert(identifier, signature_share);
@@ -1048,7 +1059,7 @@ async fn sign_message(
         }
 
         Ok(SignResponse {
-            signature: hex::encode(group_signature.serialize()),
+            signature: hex::encode(group_signature.serialize().unwrap()),
             verified: is_valid,
             message: payload.message.clone(),
             signer_ids: payload.signer_ids.clone(),

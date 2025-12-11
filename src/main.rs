@@ -89,7 +89,7 @@ async fn main() -> anyhow::Result<()> {
     let group_pubkey = pubkey_package.verifying_key();
     tracing::info!(
         "✓ Group public key: {}...",
-        &hex::encode(group_pubkey.serialize())[..32]
+        &hex::encode(group_pubkey.serialize().unwrap())[..32]
     );
 
     // ========================================================================
@@ -102,7 +102,10 @@ async fn main() -> anyhow::Result<()> {
     // 為每個金鑰分片建立 Signer
     for (identifier, key_package) in shares {
         let signer = signer::Signer::new(key_package);
-        let signer_id = u16::from(identifier);
+
+        // Convert Identifier to u16 by serializing
+        let id_bytes = identifier.serialize();
+        let signer_id = u16::from_le_bytes([id_bytes[0], id_bytes[1]]);
 
         app_state.add_signer(signer_id, signer);
 

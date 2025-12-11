@@ -140,7 +140,7 @@ pub async fn signer_round1(
     let response = Round1Response {
         signer_id,
         session_id: request.session_id,
-        commitment: hex::encode(commitment.serialize()),
+        commitment: hex::encode(commitment.serialize().unwrap()),
         timestamp: chrono::Utc::now(),
     };
 
@@ -261,9 +261,9 @@ pub async fn sign(
     // 建立回應
     let response = SignResponse {
         session_id: SessionId::new(), // 在實際實作中，這應該從協調者返回
-        signature: hex::encode(signature.serialize()),
+        signature: hex::encode(signature.serialize().unwrap()),
         verified: true,
-        group_public_key: hex::encode(state.coordinator.group_public_key().serialize()),
+        group_public_key: hex::encode(state.coordinator.group_public_key().serialize().unwrap()),
     };
 
     tracing::info!(
@@ -310,6 +310,6 @@ pub struct PubkeyResponse {
 
 pub async fn get_pubkey(State(state): State<AppState>) -> Json<PubkeyResponse> {
     Json(PubkeyResponse {
-        group_public_key: hex::encode(state.coordinator.group_public_key().serialize()),
+        group_public_key: hex::encode(state.coordinator.group_public_key().serialize().unwrap()),
     })
 }

@@ -13,7 +13,7 @@ use anyhow::{Context, Result};
 use frost_secp256k1 as frost;
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 // ============================================================================
 // Nonce 檔案格式
@@ -72,7 +72,7 @@ impl NonceStore {
         let nonce_file = NonceFile {
             session_id: session_id.to_string(),
             signer_id,
-            nonce_hex: hex::encode(nonce.serialize()),
+            nonce_hex: hex::encode(nonce.serialize()?),
             warning: "⚠️ DEMO ONLY! Never persist secret nonces in production!".to_string(),
         };
 

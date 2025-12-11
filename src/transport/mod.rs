@@ -54,7 +54,7 @@ pub struct MessageMetadata {
 }
 
 /// 訊息類型（用於分類和統計）
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum MessageType {
     /// Round 1: Signer -> Coordinator 的承諾
     Round1Commitment,

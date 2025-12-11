@@ -16,7 +16,7 @@ use crate::api::{CommitmentData, SigningPackageData};
 use anyhow::{Context, Result};
 use frost_secp256k1 as frost;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 
@@ -177,7 +177,7 @@ impl FileStore {
     ) -> Result<()> {
         let pubkey_file = PublicKeyFile {
             pubkey_package_hex: hex::encode(pubkey_package.serialize()?),
-            group_pubkey_hex: hex::encode(pubkey_package.verifying_key().serialize()),
+            group_pubkey_hex: hex::encode(pubkey_package.verifying_key().serialize()?),
             metadata: KeyShareMetadata {
                 created_at: chrono::Utc::now().to_rfc3339(),
                 threshold,
@@ -221,7 +221,7 @@ impl FileStore {
         let commitment_file = CommitmentFile {
             session_id: session_id.to_string(),
             signer_id,
-            commitment_hex: hex::encode(commitment.serialize()),
+            commitment_hex: hex::encode(commitment.serialize()?),
             message_hash: hex::encode(&message[..32.min(message.len())]),
         };
 
@@ -242,8 +242,8 @@ impl FileStore {
     /// 載入多個承諾並轉換為 FROST 格式
     pub fn load_commitments_map(
         paths: &[impl AsRef<Path>],
-    ) -> Result<HashMap<frost::Identifier, frost::round1::SigningCommitments>> {
-        let mut commitments_map = HashMap::new();
+    ) -> Result<BTreeMap<frost::Identifier, frost::round1::SigningCommitments>> {
+        let mut commitments_map = BTreeMap::new();
 
         for path in paths {
             let commitment_file = Self::load_commitment(path.as_ref())?;
@@ -329,8 +329,8 @@ impl FileStore {
     /// 載入多個簽章分片並轉換為 FROST 格式
     pub fn load_signature_shares_map(
         paths: &[impl AsRef<Path>],
-    ) -> Result<HashMap<frost::Identifier, frost::round2::SignatureShare>> {
-        let mut shares_map = HashMap::new();
+    ) -> Result<BTreeMap<frost::Identifier, frost::round2::SignatureShare>> {
+        let mut shares_map = BTreeMap::new();
 
         for path in paths {
             let share_file = Self::load_signature_share(path.as_ref())?;
@@ -364,7 +364,7 @@ impl FileStore {
     ) -> Result<()> {
         let signature_file = SignatureFile {
             session_id: session_id.to_string(),
-            signature_hex: hex::encode(signature.serialize()),
+            signature_hex: hex::encode(signature.serialize()?),
             message_hex: hex::encode(message),
             signer_ids,
         };

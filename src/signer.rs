@@ -63,7 +63,7 @@ pub struct Signer {
     signer_id: frost::Identifier,
 
     /// 此簽署者的金鑰分片（包含私鑰分片）
-    key_package: frost::keys::KeyPackage,
+    secret_share: frost::keys::SecretShare,
 
     /// Nonce 儲存: SessionId -> SecretNonces
     /// 使用 DashMap 提供並發安全且高效能的存取
@@ -84,12 +84,12 @@ impl Signer {
     ///
     /// # 參數
     /// - `key_package`: 此簽署者的金鑰分片（由 Setup 階段分發）
-    pub fn new(key_package: frost::keys::KeyPackage) -> Self {
-        let signer_id = key_package.identifier();
+    pub fn new(secret_share: frost::keys::SecretShare) -> Self {
+        let signer_id = *secret_share.identifier();
 
         Self {
             signer_id,
-            key_package,
+            secret_share,
             nonce_store: Arc::new(DashMap::new()),
         }
     }
@@ -143,7 +143,7 @@ impl Signer {
         // - SigningNonces: 秘密部分（必須保密）
         // - SigningCommitments: 公開承諾（可以傳輸）
         let (nonces, commitments) = frost::round1::commit(
-            self.key_package.signing_share(),
+            self.secret_share.signing_share(),
             &mut rng,
         );
 
@@ -161,7 +161,7 @@ impl Signer {
         tracing::debug!(
             signer_id = ?self.signer_id,
             session_id = %session_id,
-            commitment_hex = %hex::encode(commitments.serialize()),
+            commitment_hex = %hex::encode(commitments.serialize().unwrap()),
             "Nonce stored, commitment generated"
         );
 
@@ -230,7 +230,11 @@ impl Signer {
 
         // 步驟 3: 生成簽章分片
         // 使用：金鑰分片 + 秘密 nonce + 簽章套件
-        let signature_share = frost::round2::sign(&signing_package, &nonces, &self.key_package)
+        // Create a KeyPackage from the secret_share components
+        let key_package = frost::keys::KeyPackage::try_from(self.secret_share.clone())
+            .map_err(|e| SignerError::SignatureGenerationFailed(format!("KeyPackage conversion failed: {:?}", e)))?;
+
+        let signature_share = frost::round2::sign(&signing_package, &nonces, &key_package)
             .map_err(|e| SignerError::SignatureGenerationFailed(format!("{:?}", e)))?;
 
         tracing::info!(
@@ -253,10 +257,10 @@ impl Signer {
         &self,
         data: &SigningPackageData,
     ) -> Result<frost::SigningPackage, SignerError> {
-        use std::collections::HashMap;
+        use std::collections::BTreeMap;
 
         // 反序列化所有承諾
-        let mut commitments_map = HashMap::new();
+        let mut commitments_map = BTreeMap::new();
 
         for commitment_data in &data.commitments {
             // 將簽署者 ID 轉換為 FROST Identifier

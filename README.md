@@ -17,6 +17,17 @@
 
 ---
 
+## 🆕 Recent Updates
+
+**2025-12-11 - FROST API v2.2.0 Compatibility** ✅
+- ✅ Full compatibility with `frost-secp256k1` v2.2.0
+- ✅ 30+ fixes across 9 files (HashMap→BTreeMap, Identifier conversions, etc.)
+- ✅ Zero compilation errors, builds successfully
+- ✅ All demo and CLI commands fully functional
+- 📝 Complete fix documentation in [WORK-SESSION-2025-12-11.md](WORK-SESSION-2025-12-11.md)
+
+---
+
 <a name="english"></a>
 
 ## 🎯 What is FROST-T?
@@ -239,12 +250,31 @@ frost-threshold-signature/
 ## 🔧 Technical Stack
 
 - **Language**: Rust 2021 Edition
-- **FROST**: `frost-secp256k1` (threshold signatures)
+- **FROST**: `frost-secp256k1` v2.2.0 (threshold signatures)
+  - Uses BTreeMap for deterministic ordering
+  - SecretShare/KeyPackage distinction for security
+  - Result-based serialization for error handling
 - **Async**: `tokio` (async runtime)
-- **Web**: `axum` (HTTP framework)
+- **Web**: `axum` (HTTP framework with CORS support)
 - **CLI**: `clap` (argument parsing)
 - **Serialization**: `serde` + `serde_json`
-- **Crypto**: secp256k1 curve (Bitcoin compatible)
+- **Crypto**: secp256k1 curve (Bitcoin/Taproot compatible)
+- **Concurrency**: `Arc<Mutex>` for shared state, `DashMap` for concurrent nonce storage
+
+### Key Dependencies
+
+```toml
+frost-secp256k1 = "2.2.0"    # FROST threshold signatures
+tokio = { version = "1", features = ["full"] }
+axum = "0.8"                  # Web framework
+tower-http = "0.6"            # CORS middleware
+serde = { version = "1.0", features = ["derive"] }
+anyhow = "1.0"                # Error handling
+hex = "0.4"                   # Hex encoding
+chrono = "0.4"                # Timestamps
+dashmap = "6.1"               # Concurrent HashMap
+uuid = { version = "1.0", features = ["v4", "serde"] }
+```
 
 ---
 
@@ -285,6 +315,74 @@ Performs complete workflow testing with health checks, status monitoring, signin
 - ✅ [VERIFICATION-CHECKLIST.md](VERIFICATION-CHECKLIST.md) - Manual verification checklist
 - 🔧 `verify_demo.py` - Python automated test suite
 - ⚡ `quick-test.bat/sh` - One-click environment verification
+
+---
+
+## 🔧 Troubleshooting
+
+### Compilation Errors
+
+**Problem**: `error[E0433]: failed to resolve: use of undeclared type 'HashMap'`
+
+**Solution**: This project uses `BTreeMap` instead of `HashMap` for FROST API compatibility. If you see this error after modifying code, change:
+```rust
+use std::collections::HashMap;  // ❌ Wrong
+use std::collections::BTreeMap; // ✅ Correct
+```
+
+**Problem**: `error[E0308]: mismatched types ... expected BTreeMap, found HashMap`
+
+**Solution**: FROST v2.2.0 requires `BTreeMap` for all commitment and signature share collections:
+```rust
+let mut map = HashMap::new();  // ❌ Wrong
+let mut map = BTreeMap::new(); // ✅ Correct
+```
+
+**Problem**: `error[E0599]: no method named 'unwrap' found for struct 'Vec<u8>'`
+
+**Solution**: `SignatureShare.serialize()` directly returns `Vec<u8>`, not `Result`:
+```rust
+hex::encode(share.serialize().unwrap())  // ❌ Wrong
+hex::encode(share.serialize())           // ✅ Correct
+```
+
+### Runtime Errors
+
+**Problem**: Port 3000 already in use
+
+**Solution**:
+```bash
+# Windows
+netstat -ano | findstr :3000
+taskkill /PID <PID> /F
+
+# Linux/Mac
+lsof -ti:3000 | xargs kill -9
+```
+
+**Problem**: Dashboard not updating
+
+**Solution**:
+1. Check if server is running: `curl http://127.0.0.1:3000/health`
+2. Clear browser cache and refresh
+3. Check browser console for CORS errors
+
+**Problem**: `cargo build` takes too long
+
+**Solution**:
+```bash
+# Use release mode with optimizations
+cargo build --release
+
+# Or use nightly with faster linking
+rustup default nightly
+```
+
+### Getting Help
+
+- 📖 Read [WORK-SESSION-2025-12-11.md](WORK-SESSION-2025-12-11.md) for API compatibility details
+- 🐛 Check [Issues](https://github.com/benson-code/frost-threshold-signature/issues)
+- 💬 Ask in bitcoin++ community channels
 
 ---
 
@@ -442,6 +540,17 @@ MIT License - see [LICENSE](LICENSE)
 
 <a name="中文"></a>
 
+## 🆕 最新更新
+
+**2025-12-11 - FROST API v2.2.0 相容性** ✅
+- ✅ 完全相容 `frost-secp256k1` v2.2.0
+- ✅ 修復 9 個檔案的 30+ 處問題（HashMap→BTreeMap、Identifier 轉換等）
+- ✅ 零編譯錯誤，成功建置
+- ✅ 所有 demo 和 CLI 命令完全正常運作
+- 📝 完整修復文件請見 [WORK-SESSION-2025-12-11.md](WORK-SESSION-2025-12-11.md)
+
+---
+
 ## 🎯 什麼是 FROST-T？
 
 **FROST-T** (FROST Terminal) 是 **FROST (Flexible Round-Optimized Schnorr Threshold)** 協議的完整實作，具有兩大創新：
@@ -552,6 +661,74 @@ cargo run --bin frost-cli -- demo-basic --signers 2,4,5
 # 顯示完整的 hex payload
 cargo run --bin frost-cli -- demo-basic --full-payload
 ```
+
+---
+
+## 🔧 疑難排解
+
+### 編譯錯誤
+
+**問題**：`error[E0433]: failed to resolve: use of undeclared type 'HashMap'`
+
+**解決方法**：本專案使用 `BTreeMap` 而非 `HashMap` 以符合 FROST API 要求。如果修改程式碼後看到此錯誤，請更改：
+```rust
+use std::collections::HashMap;  // ❌ 錯誤
+use std::collections::BTreeMap; // ✅ 正確
+```
+
+**問題**：`error[E0308]: mismatched types ... expected BTreeMap, found HashMap`
+
+**解決方法**：FROST v2.2.0 要求所有 commitment 和 signature share 集合使用 `BTreeMap`：
+```rust
+let mut map = HashMap::new();  // ❌ 錯誤
+let mut map = BTreeMap::new(); // ✅ 正確
+```
+
+**問題**：`error[E0599]: no method named 'unwrap' found for struct 'Vec<u8>'`
+
+**解決方法**：`SignatureShare.serialize()` 直接返回 `Vec<u8>`，不是 `Result`：
+```rust
+hex::encode(share.serialize().unwrap())  // ❌ 錯誤
+hex::encode(share.serialize())           // ✅ 正確
+```
+
+### 執行時錯誤
+
+**問題**：Port 3000 已被佔用
+
+**解決方法**：
+```bash
+# Windows
+netstat -ano | findstr :3000
+taskkill /PID <PID> /F
+
+# Linux/Mac
+lsof -ti:3000 | xargs kill -9
+```
+
+**問題**：Dashboard 沒有更新
+
+**解決方法**：
+1. 檢查伺服器是否運行：`curl http://127.0.0.1:3000/health`
+2. 清除瀏覽器快取並重新整理
+3. 檢查瀏覽器主控台是否有 CORS 錯誤
+
+**問題**：`cargo build` 太慢
+
+**解決方法**：
+```bash
+# 使用 release 模式優化
+cargo build --release
+
+# 或使用 nightly 版本加速連結
+rustup default nightly
+```
+
+### 取得協助
+
+- 📖 閱讀 [WORK-SESSION-2025-12-11.md](WORK-SESSION-2025-12-11.md) 了解 API 相容性細節
+- 🐛 查看 [Issues](https://github.com/benson-code/frost-threshold-signature/issues)
+- 💬 在 bitcoin++ 社群頻道詢問
 
 ---
 

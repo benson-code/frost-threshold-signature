@@ -1,495 +1,50 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html class="dark" lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FROST-T Protocol | Web3 Dashboard</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>FROST-T Dashboard | Threshold Signature Protocol</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Noto+Sans:wght@400;500;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#19e66b",
+                        "background-light": "#f6f8f7",
+                        "background-dark": "#112117",
+                        "surface-dark": "#1a2e22",
+                        "border-dark": "#2d4a37",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"],
+                        "body": ["Noto Sans", "sans-serif"],
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.375rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                    }
+                },
+            },
+        }
+    </script>
     <style>
-        /* ===== CSS Variables (Color System) ===== */
-        :root {
-            /* Background colors */
-            --bg-primary: #0a0e27;
-            --bg-secondary: #0d1117;
-            --bg-card: rgba(255, 255, 255, 0.03);
-
-            /* Gradient colors */
-            --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-            --gradient-secondary: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-            --gradient-success: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            --gradient-warning: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-            --gradient-danger: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-
-            /* Text colors */
-            --text-primary: #ffffff;
-            --text-secondary: #94a3b8;
-            --text-muted: #64748b;
-
-            /* Accent colors */
-            --accent-blue: #3b82f6;
-            --accent-purple: #8b5cf6;
-            --accent-pink: #ec4899;
-            --accent-green: #10b981;
-            --accent-orange: #f59e0b;
-
-            /* Border & Shadow */
-            --border-color: rgba(255, 255, 255, 0.1);
-            --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
-            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.3);
-            --shadow-glow: 0 0 20px rgba(102, 126, 234, 0.3);
-
-            /* Spacing */
-            --spacing-xs: 0.5rem;
-            --spacing-sm: 1rem;
-            --spacing-md: 1.5rem;
-            --spacing-lg: 2rem;
-            --spacing-xl: 3rem;
-
-            /* Border radius */
-            --radius-sm: 8px;
-            --radius-md: 12px;
-            --radius-lg: 16px;
-            --radius-xl: 24px;
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
         }
-
-        /* ===== Global Styles ===== */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
-            color: var(--text-primary);
-            min-height: 100vh;
-            overflow-x: hidden;
-            line-height: 1.6;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
+            font-family: "Space Grotesk", sans-serif;
         }
 
-        /* Animated background gradient */
-        body::before {
-            content: "";
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at 20% 50%, rgba(102, 126, 234, 0.1) 0%, transparent 50%),
-                        radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
-            pointer-events: none;
-            z-index: 0;
-            animation: gradientShift 15s ease infinite;
-        }
-
-        @keyframes gradientShift {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.8; transform: scale(1.1); }
-        }
-
-        /* ===== Container ===== */
-        .container {
-            position: relative;
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: var(--spacing-lg);
-            z-index: 1;
-        }
-
-        /* ===== Header ===== */
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: var(--spacing-xl);
-            padding: var(--spacing-md) 0;
-        }
-
-        .header-left h1 {
-            font-size: 2rem;
-            font-weight: 700;
-            background: var(--gradient-primary);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: var(--spacing-xs);
-        }
-
-        .header-left p {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            font-weight: 400;
-        }
-
-        .header-right {
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-sm);
-        }
-
-        .connection-badge {
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-xs);
-            padding: var(--spacing-xs) var(--spacing-md);
-            background: var(--bg-card);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-lg);
-            font-size: 0.875rem;
-            font-weight: 500;
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--accent-green);
-            box-shadow: 0 0 10px var(--accent-green);
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.2); opacity: 0.8; }
-        }
-
-        .status-dot.disconnected {
-            background: var(--accent-orange);
-            box-shadow: 0 0 10px var(--accent-orange);
-        }
-
-        /* ===== Glass Card Base ===== */
-        .glass-card {
-            background: var(--bg-card);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-lg);
-            padding: var(--spacing-lg);
-            box-shadow: var(--shadow-lg);
-            transition: all 0.3s ease;
-        }
-
-        .glass-card:hover {
-            border-color: rgba(255, 255, 255, 0.2);
-            box-shadow: var(--shadow-glow);
-            transform: translateY(-2px);
-        }
-
-        /* ===== Dashboard Grid ===== */
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(12, 1fr);
-            gap: var(--spacing-lg);
-        }
-
-        /* ===== Card 1: Status ===== */
-        .status-card {
-            grid-column: span 12;
-            text-align: center;
-            padding: var(--spacing-xl);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .status-card::before {
-            content: "";
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: var(--gradient-primary);
-            opacity: 0.1;
-            animation: rotate 20s linear infinite;
-        }
-
-        @keyframes rotate {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        .phase-title {
-            font-size: 3rem;
-            font-weight: 700;
-            background: var(--gradient-primary);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: var(--spacing-sm);
-            position: relative;
-            z-index: 1;
-        }
-
-        .phase-subtitle {
-            font-size: 1rem;
-            color: var(--text-secondary);
-            font-weight: 400;
-            position: relative;
-            z-index: 1;
-        }
-
-        /* Loading Spinner */
-        .loading-spinner {
-            display: inline-block;
-            width: 60px;
-            height: 60px;
-            margin: var(--spacing-md) 0;
-            position: relative;
-            z-index: 1;
-        }
-
-        .loading-spinner::after {
-            content: "";
-            display: block;
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            border: 4px solid transparent;
-            border-top-color: var(--accent-purple);
-            border-right-color: var(--accent-pink);
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* Progress Bar */
-        .progress-container {
-            margin-top: var(--spacing-lg);
-            position: relative;
-            z-index: 1;
-        }
-
-        .progress-label {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: var(--spacing-sm);
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-        }
-
-        .progress-percentage {
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .progress-bar-container {
-            width: 100%;
-            height: 12px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: var(--radius-lg);
-            overflow: hidden;
-            position: relative;
-        }
-
-        .progress-bar-fill {
-            height: 100%;
-            background: var(--gradient-primary);
-            border-radius: var(--radius-lg);
-            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-        }
-
-        /* Animated gradient flow */
-        .progress-bar-fill::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-            animation: shimmer 2s infinite;
-        }
-
-        @keyframes shimmer {
-            to { left: 100%; }
-        }
-
-        /* ===== Card 2: Metrics ===== */
-        .metrics-card {
-            grid-column: span 12;
-        }
-
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: var(--spacing-md);
-        }
-
-        .metric-box {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-md);
-            padding: var(--spacing-lg);
-            text-align: center;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .metric-box::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: var(--gradient-primary);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .metric-box:hover::before {
-            opacity: 1;
-        }
-
-        .metric-box:hover {
-            background: rgba(255, 255, 255, 0.05);
-            transform: translateY(-4px);
-        }
-
-        .metric-label {
-            font-size: 0.875rem;
-            color: var(--text-muted);
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: var(--spacing-sm);
-        }
-
-        .metric-value {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            line-height: 1;
-            margin-bottom: var(--spacing-xs);
-        }
-
-        .metric-unit {
-            font-size: 1rem;
-            color: var(--text-secondary);
-            font-weight: 400;
-        }
-
-        /* Count-up animation */
-        .metric-value.animating {
-            animation: countUp 0.5s ease-out;
-        }
-
-        @keyframes countUp {
-            from { transform: scale(1.2); opacity: 0.5; }
-            to { transform: scale(1); opacity: 1; }
-        }
-
-        /* ===== Additional Stats ===== */
-        .stats-card {
-            grid-column: span 12;
-        }
-
-        .stats-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: var(--spacing-md);
-        }
-
-        .stat-item {
-            display: flex;
-            flex-direction: column;
-            gap: var(--spacing-xs);
-        }
-
-        .stat-label {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        /* ===== Card 3: Event Log ===== */
-        .log-card {
-            grid-column: span 12;
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: var(--spacing-lg);
-        }
-
-        .card-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .event-count {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            padding: var(--spacing-xs) var(--spacing-sm);
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: var(--radius-sm);
-        }
-
-        .event-log {
-            max-height: 400px;
-            overflow-y: auto;
-            padding-right: var(--spacing-sm);
-        }
-
-        /* Custom scrollbar */
-        .event-log::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .event-log::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: var(--radius-sm);
-        }
-
-        .event-log::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: var(--radius-sm);
-        }
-
-        .event-log::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-
-        .event-item {
-            display: flex;
-            align-items: flex-start;
-            gap: var(--spacing-md);
-            padding: var(--spacing-md);
-            margin-bottom: var(--spacing-sm);
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-md);
-            transition: all 0.3s ease;
-            animation: slideIn 0.4s ease-out;
-        }
-
+        /* Animation for new events */
         @keyframes slideIn {
             from {
                 opacity: 0;
-                transform: translateX(-20px);
+                transform: translateX(-10px);
             }
             to {
                 opacity: 1;
@@ -497,260 +52,205 @@
             }
         }
 
-        .event-item:hover {
-            background: rgba(255, 255, 255, 0.05);
-            border-color: rgba(255, 255, 255, 0.2);
+        .new-event {
+            animation: slideIn 0.3s ease-out;
         }
 
-        .event-item.new {
-            background: rgba(102, 126, 234, 0.1);
-            border-color: rgba(102, 126, 234, 0.3);
-        }
-
-        .event-icon {
-            flex-shrink: 0;
-            width: 36px;
-            height: 36px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: var(--radius-sm);
-            font-size: 1.25rem;
-        }
-
-        .event-icon.start {
-            background: rgba(59, 130, 246, 0.1);
-            color: var(--accent-blue);
-        }
-
-        .event-icon.fragment {
-            background: rgba(139, 92, 246, 0.1);
-            color: var(--accent-purple);
-        }
-
-        .event-icon.lost {
-            background: rgba(239, 68, 68, 0.1);
-            color: #ef4444;
-        }
-
-        .event-icon.retry {
-            background: rgba(245, 158, 11, 0.1);
-            color: var(--accent-orange);
-        }
-
-        .event-icon.complete {
-            background: rgba(16, 185, 129, 0.1);
-            color: var(--accent-green);
-        }
-
-        .event-content {
-            flex: 1;
-        }
-
-        .event-type {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: var(--spacing-xs);
-        }
-
-        .event-type.start {
-            background: rgba(59, 130, 246, 0.2);
-            color: var(--accent-blue);
-        }
-
-        .event-type.fragment {
-            background: rgba(139, 92, 246, 0.2);
-            color: var(--accent-purple);
-        }
-
-        .event-type.lost {
-            background: rgba(239, 68, 68, 0.2);
-            color: #ef4444;
-        }
-
-        .event-type.retry {
-            background: rgba(245, 158, 11, 0.2);
-            color: var(--accent-orange);
-        }
-
-        .event-type.complete {
-            background: rgba(16, 185, 129, 0.2);
-            color: var(--accent-green);
-        }
-
-        .event-details {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            line-height: 1.5;
-        }
-
-        .event-time {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            margin-top: var(--spacing-xs);
-        }
-
-        /* Empty state */
-        .empty-state {
-            text-align: center;
-            padding: var(--spacing-xl);
-            color: var(--text-muted);
-        }
-
-        .empty-state-icon {
-            font-size: 3rem;
-            margin-bottom: var(--spacing-md);
-            opacity: 0.5;
-        }
-
-        /* ===== Responsive Design ===== */
-        @media (max-width: 768px) {
-            .container {
-                padding: var(--spacing-md);
+        /* Pulse animation for status dot */
+        @keyframes pulse-green {
+            0%, 100% {
+                opacity: 1;
             }
-
-            .header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: var(--spacing-md);
-            }
-
-            .header-left h1 {
-                font-size: 1.5rem;
-            }
-
-            .phase-title {
-                font-size: 2rem;
-            }
-
-            .metrics-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .metric-value {
-                font-size: 2rem;
-            }
-
-            .dashboard-grid > * {
-                grid-column: span 12;
+            50% {
+                opacity: 0.5;
             }
         }
 
-        @media (max-width: 480px) {
-            .phase-title {
-                font-size: 1.5rem;
-            }
-
-            .metric-value {
-                font-size: 1.75rem;
-            }
+        .pulse-green {
+            animation: pulse-green 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <!-- Header -->
-        <header class="header">
-            <div class="header-left">
-                <h1>FROST-T Protocol</h1>
-                <p>Bitcoin++ Taipei 2025 · 3-of-5 Threshold Signature</p>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white antialiased min-h-screen flex overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-64 flex flex-col border-r border-slate-200 dark:border-border-dark bg-white dark:bg-background-dark shrink-0 h-screen sticky top-0">
+        <div class="h-16 flex items-center px-6 border-b border-slate-200 dark:border-border-dark">
+            <div class="flex items-center gap-2 text-primary">
+                <span class="material-symbols-outlined text-3xl">token</span>
+                <span class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">FROST-T</span>
             </div>
-            <div class="header-right">
-                <div class="connection-badge">
-                    <div class="status-dot" id="status-dot"></div>
-                    <span id="connection-status">Connected</span>
+        </div>
+        <nav class="flex-1 overflow-y-auto py-6 px-4 space-y-1">
+            <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary dark:text-primary group" href="#">
+                <span class="material-symbols-outlined text-[22px]">dashboard</span>
+                <span class="text-sm font-semibold">Dashboard</span>
+            </a>
+            <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-surface-dark group transition-colors" href="#">
+                <span class="material-symbols-outlined text-[22px] group-hover:text-slate-900 dark:group-hover:text-white">hub</span>
+                <span class="text-sm font-medium">Signers</span>
+            </a>
+            <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-surface-dark group transition-colors" href="#">
+                <span class="material-symbols-outlined text-[22px] group-hover:text-slate-900 dark:group-hover:text-white">receipt_long</span>
+                <span class="text-sm font-medium">Event Logs</span>
+            </a>
+            <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-surface-dark group transition-colors" href="#">
+                <span class="material-symbols-outlined text-[22px] group-hover:text-slate-900 dark:group-hover:text-white">settings</span>
+                <span class="text-sm font-medium">Settings</span>
+            </a>
+        </nav>
+        <div class="p-4 border-t border-slate-200 dark:border-border-dark">
+            <div class="flex items-center gap-3 px-3 py-2">
+                <div class="w-8 h-8 rounded bg-primary/20 flex items-center justify-center text-primary font-bold text-sm">FT</div>
+                <div class="flex flex-col">
+                    <span class="text-xs font-semibold text-slate-900 dark:text-white">FROST Terminal</span>
+                    <span class="text-[10px] text-slate-500 dark:text-slate-400">v0.1.0</span>
                 </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden">
+        <!-- Header -->
+        <header class="h-16 flex items-center justify-between px-8 border-b border-slate-200 dark:border-border-dark bg-white dark:bg-background-dark shrink-0">
+            <div class="flex items-center gap-4">
+                <h1 class="text-lg font-bold text-slate-900 dark:text-white">Live Transmission Monitor</h1>
+                <span id="connection-badge" class="px-2 py-0.5 rounded text-[11px] font-bold bg-green-500/10 text-green-500 border border-green-500/20">
+                    <span class="inline-block w-1.5 h-1.5 bg-green-500 rounded-full mr-1 pulse-green"></span>
+                    CONNECTED
+                </span>
+            </div>
+            <div class="flex items-center gap-3">
+                <button class="h-9 px-3 flex items-center gap-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-surface-dark transition-colors text-sm font-medium">
+                    <span class="material-symbols-outlined text-[20px]">wifi</span>
+                    <span id="header-rssi">-50 dBm</span>
+                </button>
+                <button class="h-9 px-3 flex items-center gap-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-surface-dark transition-colors text-sm font-medium">
+                    <span class="material-symbols-outlined text-[20px]">schedule</span>
+                    <span id="header-latency">500ms</span>
+                </button>
             </div>
         </header>
 
-        <!-- Dashboard Grid -->
-        <div class="dashboard-grid">
-            <!-- Card 1: Status -->
-            <div class="glass-card status-card">
-                <div class="phase-title" id="current-phase">System Idle</div>
-                <div class="phase-subtitle">Waiting for transmission events</div>
-                <div class="loading-spinner" id="loading-spinner" style="display: none;"></div>
+        <!-- Scrollable Area -->
+        <div class="flex-1 overflow-y-auto bg-slate-50 dark:bg-[#0c1610] p-8">
+            <div class="max-w-[1200px] mx-auto space-y-6">
+                <!-- Hero Status Section -->
+                <div class="rounded-xl border border-slate-200 dark:border-border-dark bg-white dark:bg-surface-dark overflow-hidden shadow-sm">
+                    <div class="p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-3">
+                                <span class="flex h-3 w-3 relative">
+                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                                    <span class="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+                                </span>
+                                <h2 class="text-sm font-bold tracking-widest text-slate-500 uppercase">Current Phase</h2>
+                            </div>
+                            <p id="current-phase" class="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white tracking-tight">IDLE</p>
+                            <p class="text-slate-500 dark:text-slate-400 max-w-lg text-lg">
+                                <span id="phase-description">Ready to initiate threshold signature generation. Waiting for coordinator command via LoRa transport layer.</span>
+                            </p>
+                        </div>
+                        <div class="flex flex-col gap-3 w-full md:w-auto">
+                            <div class="bg-primary/10 border border-primary/20 text-primary font-bold py-3 px-6 rounded-lg flex items-center justify-center gap-2">
+                                <span class="material-symbols-outlined">bolt</span>
+                                <span>Live Monitoring</span>
+                            </div>
+                        </div>
+                    </div>
 
-                <div class="progress-container">
-                    <div class="progress-label">
-                        <span>Transmission Progress</span>
-                        <span class="progress-percentage" id="progress-text">0%</span>
-                    </div>
-                    <div class="progress-bar-container">
-                        <div class="progress-bar-fill" id="progress-fill" style="width: 0%"></div>
+                    <!-- Progress Bar -->
+                    <div class="px-6 pb-8 md:px-8">
+                        <div class="flex justify-between items-end mb-2">
+                            <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Transmission Progress</span>
+                            <span id="progress-text" class="text-sm font-mono text-slate-500">0%</span>
+                        </div>
+                        <div class="w-full bg-slate-100 dark:bg-background-dark rounded h-2 overflow-hidden">
+                            <div id="progress-fill" class="bg-primary h-full rounded transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                        <div class="mt-2 text-xs text-slate-400 font-mono">
+                            <span id="total-messages-inline">0</span> messages ·
+                            <span id="total-bytes-inline">0</span> bytes transmitted
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Card 2: Metrics -->
-            <div class="glass-card metrics-card">
-                <div class="card-header">
-                    <h2 class="card-title">Key Metrics</h2>
-                </div>
-                <div class="metrics-grid">
-                    <div class="metric-box">
-                        <div class="metric-label">Signal Strength</div>
-                        <div class="metric-value" id="rssi-value">-80</div>
-                        <div class="metric-unit">dBm</div>
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Stat Card 1: Signal Strength -->
+                    <div class="p-6 rounded-xl border border-slate-200 dark:border-border-dark bg-white dark:bg-surface-dark shadow-sm flex flex-col justify-between h-32">
+                        <div class="flex justify-between items-start">
+                            <span class="text-sm font-medium text-slate-500 dark:text-slate-400">Signal Strength (LoRa)</span>
+                            <span class="material-symbols-outlined text-slate-300 dark:text-slate-600">signal_cellular_alt</span>
+                        </div>
+                        <div class="flex items-baseline gap-2">
+                            <span id="rssi-value" class="text-3xl font-bold text-slate-900 dark:text-white">-80</span>
+                            <span class="text-sm text-primary font-medium">dBm</span>
+                        </div>
                     </div>
-                    <div class="metric-box">
-                        <div class="metric-label">Packet Loss</div>
-                        <div class="metric-value" id="packet-loss">0</div>
-                        <div class="metric-unit">packets</div>
-                    </div>
-                    <div class="metric-box">
-                        <div class="metric-label">Total Bytes</div>
-                        <div class="metric-value" id="total-bytes">0</div>
-                        <div class="metric-unit">bytes</div>
-                    </div>
-                </div>
-            </div>
 
-            <!-- Additional Stats -->
-            <div class="glass-card stats-card">
-                <div class="card-header">
-                    <h2 class="card-title">Statistics</h2>
-                </div>
-                <div class="stats-row">
-                    <div class="stat-item">
-                        <div class="stat-label">Messages</div>
-                        <div class="stat-value" id="total-messages">0</div>
+                    <!-- Stat Card 2: Total Bytes -->
+                    <div class="p-6 rounded-xl border border-slate-200 dark:border-border-dark bg-white dark:bg-surface-dark shadow-sm flex flex-col justify-between h-32">
+                        <div class="flex justify-between items-start">
+                            <span class="text-sm font-medium text-slate-500 dark:text-slate-400">Data Transmitted</span>
+                            <span class="material-symbols-outlined text-slate-300 dark:text-slate-600">cloud_upload</span>
+                        </div>
+                        <div class="flex items-baseline gap-2">
+                            <span id="total-bytes" class="text-3xl font-bold text-slate-900 dark:text-white tabular-nums">0</span>
+                            <span class="text-sm text-primary font-medium">bytes</span>
+                        </div>
                     </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Retries</div>
-                        <div class="stat-value" id="total-retries">0</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Success Rate</div>
-                        <div class="stat-value" id="success-rate">100%</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Avg Latency</div>
-                        <div class="stat-value" id="avg-latency">0ms</div>
-                    </div>
-                </div>
-            </div>
 
-            <!-- Card 3: Event Log -->
-            <div class="glass-card log-card">
-                <div class="card-header">
-                    <h2 class="card-title">Transmission Log</h2>
-                    <div class="event-count" id="event-count">0 events</div>
+                    <!-- Stat Card 3: Packet Loss -->
+                    <div class="p-6 rounded-xl border border-slate-200 dark:border-border-dark bg-white dark:bg-surface-dark shadow-sm flex flex-col justify-between h-32">
+                        <div class="flex justify-between items-start">
+                            <span class="text-sm font-medium text-slate-500 dark:text-slate-400">Packet Retries</span>
+                            <span class="material-symbols-outlined text-slate-300 dark:text-slate-600">sync_problem</span>
+                        </div>
+                        <div class="flex items-baseline gap-2">
+                            <span id="packet-loss" class="text-3xl font-bold text-slate-900 dark:text-white">0</span>
+                            <span class="text-sm text-slate-400 font-medium">retries</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="event-log" id="event-log">
-                    <div class="empty-state">
-                        <div class="empty-state-icon">📡</div>
-                        <p>Waiting for transmission events...</p>
+
+                <!-- Additional Stats Row -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="p-4 rounded-lg border border-slate-200 dark:border-border-dark bg-white dark:bg-surface-dark">
+                        <div class="text-xs text-slate-500 dark:text-slate-400 mb-1">Messages</div>
+                        <div id="total-messages" class="text-2xl font-bold text-slate-900 dark:text-white tabular-nums">0</div>
+                    </div>
+                    <div class="p-4 rounded-lg border border-slate-200 dark:border-border-dark bg-white dark:bg-surface-dark">
+                        <div class="text-xs text-slate-500 dark:text-slate-400 mb-1">Success Rate</div>
+                        <div id="success-rate" class="text-2xl font-bold text-primary tabular-nums">100%</div>
+                    </div>
+                    <div class="p-4 rounded-lg border border-slate-200 dark:border-border-dark bg-white dark:bg-surface-dark">
+                        <div class="text-xs text-slate-500 dark:text-slate-400 mb-1">Avg Latency</div>
+                        <div id="avg-latency" class="text-2xl font-bold text-slate-900 dark:text-white tabular-nums">0ms</div>
+                    </div>
+                    <div class="p-4 rounded-lg border border-slate-200 dark:border-border-dark bg-white dark:bg-surface-dark">
+                        <div class="text-xs text-slate-500 dark:text-slate-400 mb-1">Total Retries</div>
+                        <div id="total-retries" class="text-2xl font-bold text-orange-500 tabular-nums">0</div>
+                    </div>
+                </div>
+
+                <!-- Event Log / Recent Activity -->
+                <div class="rounded-xl border border-slate-200 dark:border-border-dark bg-white dark:bg-surface-dark shadow-sm">
+                    <div class="px-6 py-4 border-b border-slate-200 dark:border-border-dark flex justify-between items-center">
+                        <h3 class="font-bold text-slate-900 dark:text-white">Recent LoRa Events</h3>
+                        <span id="event-count" class="text-xs font-medium text-primary">0 events</span>
+                    </div>
+                    <div id="event-log" class="divide-y divide-slate-100 dark:divide-border-dark/50 max-h-[400px] overflow-y-auto">
+                        <!-- Events will be inserted here -->
+                        <div class="px-6 py-8 text-center text-slate-400">
+                            <span class="material-symbols-outlined text-4xl mb-2">playlist_remove</span>
+                            <p class="text-sm">No events yet. Waiting for transmission to start...</p>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </main>
 
     <script>
         // ===== Configuration =====
@@ -772,62 +272,54 @@
             const increment = range / (duration / 16);
             let current = start;
 
-            element.classList.add('animating');
-
             const timer = setInterval(() => {
                 current += increment;
                 if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
                     current = end;
                     clearInterval(timer);
-                    element.classList.remove('animating');
                 }
-
-                if (element.id === 'total-bytes') {
-                    element.textContent = Math.round(current).toLocaleString();
-                } else {
-                    element.textContent = Math.round(current);
-                }
+                element.textContent = Math.round(current).toLocaleString();
             }, 16);
         }
 
-        // ===== Format Event =====
+        // ===== Format Event for Display =====
         function formatEvent(event) {
-            const time = new Date().toLocaleTimeString('zh-TW', { hour12: false });
-            let type = '', icon = '', details = '', cssClass = '';
+            const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+            let type = '', icon = '', details = '', color = 'slate';
 
             if (event.TransmitStart) {
                 const e = event.TransmitStart;
-                type = 'Start';
-                icon = '🚀';
-                cssClass = 'start';
-                details = `${e.from} → ${e.to} | Type: ${e.message_type} | ${e.total_bytes} bytes (${e.fragments} fragments)`;
+                type = 'START';
+                icon = 'radio_button_checked';
+                color = 'blue';
+                details = `${e.from} → ${e.to} | ${e.message_type} | ${e.total_bytes}B (${e.fragments} fragments)`;
             } else if (event.TransmitFragment) {
                 const e = event.TransmitFragment;
-                type = 'Fragment';
-                icon = '📦';
-                cssClass = 'fragment';
-                details = `Fragment ${e.fragment_id}/${e.total_fragments} | ${e.bytes} bytes transmitted`;
+                type = 'FRAGMENT';
+                icon = 'attachment';
+                color = 'slate';
+                details = `Fragment ${e.fragment_id + 1}/${e.total_fragments} | ${e.bytes} bytes`;
             } else if (event.PacketLost) {
                 const e = event.PacketLost;
-                type = 'Lost';
-                icon = '⚠️';
-                cssClass = 'lost';
-                details = `Fragment ${e.fragment_id} lost | Retry attempt ${e.retry_count}`;
+                type = 'LOST';
+                icon = 'error';
+                color = 'orange';
+                details = `Fragment ${e.fragment_id} lost | Retry attempt ${e.retry_count + 1}`;
             } else if (event.RetrySuccess) {
                 const e = event.RetrySuccess;
-                type = 'Retry';
-                icon = '🔄';
-                cssClass = 'retry';
-                details = `Fragment ${e.fragment_id} recovered | Retry ${e.retry_count} successful`;
+                type = 'RETRY OK';
+                icon = 'refresh';
+                color = 'green';
+                details = `Fragment ${e.fragment_id} recovered after ${e.retry_count} retries`;
             } else if (event.TransmitComplete) {
                 const e = event.TransmitComplete;
-                type = 'Complete';
-                icon = '✅';
-                cssClass = 'complete';
-                details = `Transmission completed in ${e.total_time_ms}ms | ${e.retries} retries`;
+                type = 'COMPLETE';
+                icon = 'check_circle';
+                color = 'green';
+                details = `Completed in ${e.total_time_ms}ms | ${e.retries} retries`;
             }
 
-            return { type, icon, details, time, cssClass };
+            return { type, icon, details, time, color };
         }
 
         // ===== Update Dashboard =====
@@ -842,43 +334,54 @@
                 const data = await response.json();
 
                 // Update connection status
-                document.getElementById('connection-status').textContent = 'Connected';
-                document.getElementById('status-dot').classList.remove('disconnected');
+                document.getElementById('connection-badge').innerHTML = `
+                    <span class="inline-block w-1.5 h-1.5 bg-green-500 rounded-full mr-1 pulse-green"></span>
+                    CONNECTED
+                `;
+                document.getElementById('connection-badge').className = 'px-2 py-0.5 rounded text-[11px] font-bold bg-green-500/10 text-green-500 border border-green-500/20';
 
                 // Update phase
                 const phaseText = data.current_phase.replace(/_/g, ' ').toUpperCase();
                 document.getElementById('current-phase').textContent = phaseText;
 
-                // Show/hide loading spinner
-                const spinner = document.getElementById('loading-spinner');
-                if (data.progress > 0 && data.progress < 1) {
-                    spinner.style.display = 'inline-block';
-                } else {
-                    spinner.style.display = 'none';
-                }
+                // Update phase description
+                const phaseDescriptions = {
+                    'IDLE': 'Ready to initiate threshold signature generation.',
+                    'KEYGEN': 'Generating threshold keys using trusted dealer...',
+                    'ROUND1': 'Signers generating nonce commitments...',
+                    'ROUND1COMMITMENT': 'Broadcasting Round 1 commitments...',
+                    'SIGNINGPACKAGE': 'Coordinator creating signing package...',
+                    'ROUND2': 'Signers generating signature shares...',
+                    'ROUND2SIGNATURESHARE': 'Broadcasting Round 2 signature shares...',
+                    'AGGREGATING': 'Coordinator aggregating signature shares...',
+                    'FINALSIGNATURE': 'Threshold signature complete! Broadcasting final signature...',
+                    'VERIFIED': 'Signature verified successfully!'
+                };
+                document.getElementById('phase-description').textContent = phaseDescriptions[phaseText] || 'Processing...';
 
                 // Update progress
                 const progress = Math.round(data.progress * 100);
                 document.getElementById('progress-text').textContent = progress + '%';
                 document.getElementById('progress-fill').style.width = progress + '%';
 
-                // Update RSSI with animation
+                // Update RSSI
                 const rssiElement = document.getElementById('rssi-value');
                 if (data.rssi !== previousValues.rssi) {
                     animateValue(rssiElement, previousValues.rssi, data.rssi);
                     previousValues.rssi = data.rssi;
                 }
+                document.getElementById('header-rssi').textContent = data.rssi + ' dBm';
 
-                // Update total bytes with animation
+                // Update total bytes
                 const bytesElement = document.getElementById('total-bytes');
                 if (data.total_bytes !== previousValues.totalBytes) {
                     animateValue(bytesElement, previousValues.totalBytes, data.total_bytes);
                     previousValues.totalBytes = data.total_bytes;
                 }
+                document.getElementById('total-bytes-inline').textContent = data.total_bytes.toLocaleString();
 
-                // Calculate packet loss (retries as proxy)
-                const packetLoss = data.total_retries;
-                document.getElementById('packet-loss').textContent = packetLoss;
+                // Update packet loss (retries)
+                document.getElementById('packet-loss').textContent = data.total_retries;
 
                 // Update statistics
                 const messagesElement = document.getElementById('total-messages');
@@ -886,6 +389,7 @@
                     animateValue(messagesElement, previousValues.totalMessages, data.total_messages);
                     previousValues.totalMessages = data.total_messages;
                 }
+                document.getElementById('total-messages-inline').textContent = data.total_messages;
 
                 const retriesElement = document.getElementById('total-retries');
                 if (data.total_retries !== previousValues.totalRetries) {
@@ -899,9 +403,10 @@
                     : 100;
                 document.getElementById('success-rate').textContent = successRate + '%';
 
-                // Calculate average latency (500ms per fragment as per simulation)
+                // Calculate average latency
                 const avgLatency = data.total_messages > 0 ? 500 : 0;
                 document.getElementById('avg-latency').textContent = avgLatency + 'ms';
+                document.getElementById('header-latency').textContent = avgLatency + 'ms';
 
                 // Update event log
                 if (data.recent_events && data.recent_events.length > 0) {
@@ -917,18 +422,29 @@
                         eventsToShow.forEach((event, index) => {
                             const formatted = formatEvent(event);
 
+                            const colorClasses = {
+                                'blue': 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+                                'green': 'bg-green-500/10 text-green-500 border-green-500/20',
+                                'orange': 'bg-orange-500/10 text-orange-500 border-orange-500/20',
+                                'slate': 'bg-slate-500/10 text-slate-500 border-slate-500/20'
+                            };
+
                             const eventDiv = document.createElement('div');
-                            eventDiv.className = index === 0 ? 'event-item new' : 'event-item';
+                            eventDiv.className = `px-6 py-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-background-dark/50 transition-colors ${index === 0 ? 'new-event' : ''}`;
 
                             eventDiv.innerHTML = `
-                                <div class="event-icon ${formatted.cssClass}">
-                                    ${formatted.icon}
+                                <div class="flex items-center gap-4">
+                                    <div class="w-8 h-8 rounded-lg ${colorClasses[formatted.color]} flex items-center justify-center shrink-0">
+                                        <span class="material-symbols-outlined text-[18px]">${formatted.icon}</span>
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-xs font-bold ${colorClasses[formatted.color].split(' ')[1]} border px-1.5 py-0.5 rounded">${formatted.type}</span>
+                                        </div>
+                                        <span class="text-sm font-medium text-slate-900 dark:text-white mt-1">${formatted.details}</span>
+                                    </div>
                                 </div>
-                                <div class="event-content">
-                                    <span class="event-type ${formatted.cssClass}">${formatted.type}</span>
-                                    <div class="event-details">${formatted.details}</div>
-                                    <div class="event-time">${formatted.time}</div>
-                                </div>
+                                <span class="text-xs font-mono text-slate-400">${formatted.time}</span>
                             `;
 
                             eventLog.appendChild(eventDiv);
@@ -940,14 +456,18 @@
 
             } catch (error) {
                 console.error('Failed to fetch status:', error);
-                document.getElementById('connection-status').textContent = 'Disconnected';
-                document.getElementById('status-dot').classList.add('disconnected');
+                document.getElementById('connection-badge').innerHTML = `
+                    <span class="inline-block w-1.5 h-1.5 bg-red-500 rounded-full mr-1"></span>
+                    DISCONNECTED
+                `;
+                document.getElementById('connection-badge').className = 'px-2 py-0.5 rounded text-[11px] font-bold bg-red-500/10 text-red-500 border border-red-500/20';
             }
         }
 
         // ===== Initialize =====
-        console.log('%c🚀 FROST-T Web3 Dashboard', 'color: #667eea; font-size: 16px; font-weight: bold;');
-        console.log('%cAPI Endpoint:', 'color: #8b5cf6', API_URL);
+        console.log('%c🚀 FROST-T Professional Dashboard', 'color: #19e66b; font-size: 16px; font-weight: bold;');
+        console.log('%cAPI Endpoint:', 'color: #3b82f6', API_URL);
+        console.log('%cUpdate Interval:', 'color: #8b5cf6', UPDATE_INTERVAL + 'ms');
 
         // Start periodic updates
         updateDashboard();

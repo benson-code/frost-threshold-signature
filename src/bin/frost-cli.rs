@@ -18,6 +18,24 @@ use std::sync::{Arc, Mutex};
 use uuid::Uuid;
 
 // ============================================================================
+// CLI 輸出記錄宏
+// ============================================================================
+
+/// 宏：同時打印到控制台並記錄到共享狀態
+macro_rules! log_println {
+    ($state:expr, $($arg:tt)*) => {{
+        let line = format!($($arg)*);
+        println!("{}", line);
+        if let Ok(mut s) = $state.lock() {
+            s.cli_output.push(line);
+            if s.cli_output.len() > 500 {
+                s.cli_output.remove(0);
+            }
+        }
+    }};
+}
+
+// ============================================================================
 // 主程式入口
 // ============================================================================
 
@@ -538,12 +556,20 @@ fn cmd_verify(
 /// - ✅ HTTP API：提供 /status 端點給 Dashboard 查詢
 /// - ✅ 即時狀態追蹤：記錄所有傳輸事件
 async fn cmd_demo_basic(message: &str, signer_ids: &[u16], full_payload: bool) -> Result<()> {
-    println!("\n╔════════════════════════════════════════════════════════════════╗");
-    println!("║                                                                ║");
-    println!("║   FROST 3-of-5 門檻簽章 - 完整流程展示                        ║");
-    println!("║   Demo for bitcoin++ Taipei 2025                              ║");
-    println!("║                                                                ║");
-    println!("╚════════════════════════════════════════════════════════════════╝\n");
+    // ========================================================================
+    // 初始化 SimulatedLoRaTransport（必須先創建才能使用狀態）
+    // ========================================================================
+    let mut transport = SimulatedLoRaTransport::new();
+    let lora_state = transport.get_state();
+
+    log_println!(lora_state, "");
+    log_println!(lora_state, "╔════════════════════════════════════════════════════════════════╗");
+    log_println!(lora_state, "║                                                                ║");
+    log_println!(lora_state, "║   FROST 3-of-5 門檻簽章 - 完整流程展示                        ║");
+    log_println!(lora_state, "║   Demo for bitcoin++ Taipei 2025                              ║");
+    log_println!(lora_state, "║                                                                ║");
+    log_println!(lora_state, "╚════════════════════════════════════════════════════════════════╝");
+    log_println!(lora_state, "");
 
     // 驗證參數
     if signer_ids.len() < 3 {
@@ -560,23 +586,17 @@ async fn cmd_demo_basic(message: &str, signer_ids: &[u16], full_payload: bool) -
         }
     }
 
-    println!("📋 配置:");
-    println!("   訊息: \"{}\"", message);
-    println!("   參與簽署者: {:?}", signer_ids);
-    println!("   門檻配置: 3-of-5");
-    println!();
+    log_println!(lora_state, "📋 配置:");
+    log_println!(lora_state, "   訊息: \"{}\"", message);
+    log_println!(lora_state, "   參與簽署者: {:?}", signer_ids);
+    log_println!(lora_state, "   門檻配置: 3-of-5");
+    log_println!(lora_state, "");
 
-    // ========================================================================
-    // 初始化 SimulatedLoRaTransport
-    // ========================================================================
-    let mut transport = SimulatedLoRaTransport::new();
-    let lora_state = transport.get_state();
-
-    println!("🔧 初始化 Transport 抽象層...");
-    println!("   ✓ 使用 SimulatedLoRaTransport");
-    println!("   ✓ 延遲: 500ms per packet");
-    println!("   ✓ 掉包率: 10%");
-    println!("   ✓ 分片大小: 64 bytes");
+    log_println!(lora_state, "🔧 初始化 Transport 抽象層...");
+    log_println!(lora_state, "   ✓ 使用 SimulatedLoRaTransport");
+    log_println!(lora_state, "   ✓ 延遲: 500ms per packet");
+    log_println!(lora_state, "   ✓ 掉包率: 10%");
+    log_println!(lora_state, "   ✓ 分片大小: 64 bytes");
     println!();
 
     // ========================================================================
@@ -918,8 +938,8 @@ async fn start_http_server(
         .layer(cors)
         .with_state(lora_state);
 
-    // 綁定到 127.0.0.1:3000
-    let addr = std::net::SocketAddr::from(([127, 0, 0, 1], 3000));
+    // 綁定到 0.0.0.0:3000 (允許外部連線)
+    let addr = std::net::SocketAddr::from(([0, 0, 0, 0], 3000));
     let listener = tokio::net::TcpListener::bind(addr).await?;
 
     axum::serve(listener, app).await?;

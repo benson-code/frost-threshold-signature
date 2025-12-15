@@ -116,6 +116,9 @@ pub struct LoRaTransportState {
 
     /// 總重傳次數
     pub total_retries: u32,
+
+    /// CLI 輸出日誌（最多保留 500 行）
+    pub cli_output: Vec<String>,
 }
 
 impl Default for LoRaTransportState {
@@ -129,6 +132,7 @@ impl Default for LoRaTransportState {
             recent_events: Vec::new(),
             by_type: HashMap::new(),
             total_retries: 0,
+            cli_output: Vec::new(),
         }
     }
 }
@@ -177,6 +181,17 @@ impl SimulatedLoRaTransport {
     /// 獲取共享狀態（供 HTTP API 使用）
     pub fn get_state(&self) -> Arc<Mutex<LoRaTransportState>> {
         Arc::clone(&self.state)
+    }
+
+    /// 記錄 CLI 輸出（供 Dashboard 顯示）
+    pub fn log_cli_output(&self, line: String) {
+        let mut state = self.state.lock().unwrap();
+        state.cli_output.push(line);
+
+        // 保持最近 500 行
+        if state.cli_output.len() > 500 {
+            state.cli_output.remove(0);
+        }
     }
 
     /// 模擬封包傳輸（包含延遲和可能的掉包）

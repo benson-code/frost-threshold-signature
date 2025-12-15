@@ -42,7 +42,10 @@ use frost_secp256k1 as frost;
 use handlers::AppState;
 use rand::thread_rng;
 use std::net::SocketAddr;
-use tower_http::trace::TraceLayer;
+use tower_http::{
+    cors::{Any, CorsLayer},
+    trace::TraceLayer,
+};
 use tracing::Level;
 
 // ============================================================================
@@ -115,6 +118,12 @@ async fn main() -> anyhow::Result<()> {
     // ========================================================================
     // 建立 HTTP 路由
     // ========================================================================
+    // CORS 配置：允許從任何 origin 訪問（適合展示和開發）
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods(Any)
+        .allow_headers(Any);
+
     let app = Router::new()
         // 健康檢查與資訊端點
         .route("/health", get(handlers::health))
@@ -133,15 +142,33 @@ async fn main() -> anyhow::Result<()> {
         .route("/sign", post(handlers::sign))
         // 添加共享狀態
         .with_state(app_state)
+        // 添加 CORS 中間件（必須在 TraceLayer 之前）
+        .layer(cors)
         // 添加日誌中間件
         .layer(TraceLayer::new_for_http());
 
     // ========================================================================
     // 啟動 HTTP 服務
     // ========================================================================
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    // 支援環境變數配置 HOST 和 PORT
+    // 預設為 0.0.0.0:3000 (允許外部訪問，適合展示)
+    // 可透過環境變數自訂：
+    //   HOST=127.0.0.1 PORT=3000 cargo run (僅本地)
+    //   HOST=0.0.0.0 PORT=8080 cargo run (所有網路介面)
+    let host = std::env::var("HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
+    let port = std::env::var("PORT")
+        .unwrap_or_else(|_| "3000".to_string())
+        .parse::<u16>()
+        .unwrap_or(3000);
+
+    let addr: SocketAddr = format!("{}:{}", host, port).parse()?;
 
     tracing::info!("🚀 FROST API Server starting on http://{}", addr);
+    tracing::info!("💡 Network Access: {}", if host == "0.0.0.0" {
+        "ENABLED - Accessible from other devices"
+    } else {
+        "DISABLED - Localhost only"
+    });
     tracing::info!("📚 API Documentation:");
     tracing::info!("   GET  /health                    - Health check");
     tracing::info!("   GET  /pubkey                    - Get group public key");

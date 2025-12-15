@@ -1,0 +1,61 @@
+# ============================================================================
+# Docker Ignore File
+# ============================================================================
+# 排除不需要複製到 Docker image 的文件，加快構建速度
+
+# Rust 編譯產物
+target/
+**/*.rs.bk
+*.pdb
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# 文檔（不需要在容器中）
+*.md
+!README.md
+docs/
+screenshots/
+
+# 測試和範例
+examples/
+tests/
+*.test
+
+# 腳本（已包含在啟動命令中）
+*.sh
+*.bat
+
+# 臨時文件
+*.tmp
+*.log
+*.pid
+
+# Docker 相關
+Dockerfile
+docker-compose.yml
+.dockerignore
+nginx.conf
+
+# 環境變數
+.env
+.env.*
+
+# 其他
+*.zip
+*.tar.gz
+*.7z

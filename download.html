@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FROST-T - Surface Go 4 下載頁面</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #eee;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #19e66b;
+            text-align: center;
+            margin: 40px 0;
+            font-size: 2.5em;
+            text-shadow: 0 0 10px rgba(25, 230, 107, 0.5);
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #aaa;
+            margin-bottom: 40px;
+            font-size: 1.2em;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(25, 230, 107, 0.3);
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        .card h2 {
+            color: #19e66b;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .file-list {
+            list-style: none;
+        }
+
+        .file-item {
+            background: rgba(0, 0, 0, 0.3);
+            border-left: 3px solid #19e66b;
+            padding: 15px 20px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .file-item:hover {
+            background: rgba(25, 230, 107, 0.1);
+            transform: translateX(5px);
+        }
+
+        .file-name {
+            font-weight: bold;
+            color: #19e66b;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+
+        .file-desc {
+            color: #bbb;
+            margin-bottom: 10px;
+        }
+
+        .download-btn {
+            display: inline-block;
+            background: #19e66b;
+            color: #000;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .download-btn:hover {
+            background: #15c75a;
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(25, 230, 107, 0.5);
+        }
+
+        .quick-links {
+            background: rgba(25, 230, 107, 0.1);
+            border: 1px solid #19e66b;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .quick-links h3 {
+            color: #19e66b;
+            margin-bottom: 15px;
+        }
+
+        .quick-links a {
+            color: #19e66b;
+            text-decoration: none;
+            display: block;
+            padding: 10px;
+            margin: 5px 0;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .quick-links a:hover {
+            background: rgba(25, 230, 107, 0.2);
+            padding-left: 20px;
+        }
+
+        .status {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: #19e66b;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .footer {
+            text-align: center;
+            color: #666;
+            margin-top: 50px;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 FROST-T</h1>
+        <p class="subtitle">Surface Go 4 下載中心</p>
+
+        <div class="quick-links">
+            <h3>⚡ 快速連結</h3>
+            <a href="http://192.168.68.51:8000/dashboard.html?api=http://192.168.68.51:3000" target="_blank">
+                📊 開啟 Dashboard
+            </a>
+            <a href="http://192.168.68.51:3000/health" target="_blank">
+                ❤️ API 健康檢查
+            </a>
+            <a href="http://192.168.68.51:8000/test.html" target="_blank">
+                ✅ 連線測試頁面
+            </a>
+        </div>
+
+        <div class="card">
+            <h2>📥 下載工具腳本</h2>
+            <ul class="file-list">
+                <li class="file-item">
+                    <div class="file-name">test-from-surface.bat</div>
+                    <div class="file-desc">網路診斷工具 - 測試 Surface Go 4 與 Mac mini 的連接狀態</div>
+                    <a href="/test-from-surface.bat" download class="download-btn">⬇️ 下載</a>
+                </li>
+
+                <li class="file-item">
+                    <div class="file-name">open-dashboard-surface.bat</div>
+                    <div class="file-desc">一鍵開啟 Dashboard - 自動在瀏覽器開啟 FROST-T Dashboard</div>
+                    <a href="/open-dashboard-surface.bat" download class="download-btn">⬇️ 下載</a>
+                </li>
+
+                <li class="file-item">
+                    <div class="file-name">demo-docker-client.bat</div>
+                    <div class="file-desc">Docker 客戶端 - 透過 SSH 執行 Mac mini 上的 Docker 容器 demo</div>
+                    <a href="/demo-docker-client.bat" download class="download-btn">⬇️ 下載</a>
+                </li>
+
+                <li class="file-item">
+                    <div class="file-name">demo-hackathon-client.bat</div>
+                    <div class="file-desc">傳統客戶端 - 透過 SSH 執行 Mac mini 上的 CLI demo</div>
+                    <a href="/demo-hackathon-client.bat" download class="download-btn">⬇️ 下載</a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>📖 使用說明</h2>
+            <ol style="line-height: 2; padding-left: 20px;">
+                <li>點擊上方的「⬇️ 下載」按鈕下載文件</li>
+                <li>文件會保存到「下載」資料夾</li>
+                <li>找到下載的 .bat 文件，雙擊執行</li>
+                <li>按照螢幕上的指示操作</li>
+            </ol>
+        </div>
+
+        <div class="status">
+            <span class="status-dot"></span>
+            <span>Mac mini: <strong>192.168.68.51</strong> | 狀態: <strong style="color: #19e66b;">運行中</strong></span>
+        </div>
+
+        <div class="footer">
+            <p>Bitcoin++ Taipei 2025 - FROST-T Team</p>
+            <p style="margin-top: 10px; font-size: 0.9em;">
+                Need help? Check <a href="http://192.168.68.51:8000/HACKATHON-DEMO-GUIDE.md" style="color: #19e66b;">Demo Guide</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // 測試 API 連接
+        fetch('http://192.168.68.51:3000/health')
+            .then(response => response.json())
+            .then(data => {
+                console.log('API Status:', data);
+            })
+            .catch(error => {
+                console.error('API Error:', error);
+                document.querySelector('.status-dot').style.background = '#ff4444';
+            });
+    </script>
+</body>
+</html>

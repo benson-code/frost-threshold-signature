@@ -234,6 +234,20 @@
                     </div>
                 </div>
 
+                <!-- CLI Output Terminal -->
+                <div class="rounded-xl border border-slate-200 dark:border-border-dark bg-white dark:bg-surface-dark shadow-sm">
+                    <div class="px-6 py-4 border-b border-slate-200 dark:border-border-dark flex justify-between items-center">
+                        <h3 class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <span class="material-symbols-outlined text-primary">terminal</span>
+                            CLI Output
+                        </h3>
+                        <span id="cli-line-count" class="text-xs font-medium text-primary">0 lines</span>
+                    </div>
+                    <div id="cli-output" class="bg-slate-900 dark:bg-black p-6 font-mono text-xs text-green-400 max-h-[500px] overflow-y-auto whitespace-pre-wrap">
+                        <div class="text-slate-500">Waiting for CLI output...</div>
+                    </div>
+                </div>
+
                 <!-- Event Log / Recent Activity -->
                 <div class="rounded-xl border border-slate-200 dark:border-border-dark bg-white dark:bg-surface-dark shadow-sm">
                     <div class="px-6 py-4 border-b border-slate-200 dark:border-border-dark flex justify-between items-center">
@@ -254,8 +268,34 @@
 
     <script>
         // ===== Configuration =====
-        const API_URL = 'http://127.0.0.1:3000/status';
+        // 動態 API URL 配置 - 支援三種方式：
+        // 1. URL 參數：?api=http://192.168.1.100:3000
+        // 2. 自動檢測：使用當前頁面的 hostname（適合同一設備）
+        // 3. 預設：localhost
+        function getApiUrl() {
+            const params = new URLSearchParams(window.location.search);
+            const apiParam = params.get('api');
+
+            if (apiParam) {
+                // 方式 1: 從 URL 參數獲取
+                console.log('📍 Using API from URL parameter:', apiParam);
+                return `${apiParam}/status`;
+            } else if (window.location.hostname !== '' && window.location.hostname !== 'localhost') {
+                // 方式 2: 自動使用當前 hostname（當從網路訪問時）
+                const apiUrl = `http://${window.location.hostname}:3000/status`;
+                console.log('📍 Auto-detected API URL:', apiUrl);
+                return apiUrl;
+            } else {
+                // 方式 3: 預設使用 localhost
+                console.log('📍 Using default localhost API');
+                return 'http://127.0.0.1:3000/status';
+            }
+        }
+
+        const API_URL = getApiUrl();
         const UPDATE_INTERVAL = 1000; // 1 second
+
+        console.log('✅ Dashboard initialized with API:', API_URL);
 
         // ===== State =====
         let previousEventCount = 0;
@@ -280,6 +320,13 @@
                 }
                 element.textContent = Math.round(current).toLocaleString();
             }, 16);
+        }
+
+        // ===== Utility: Escape HTML =====
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         // ===== Format Event for Display =====
@@ -452,6 +499,23 @@
 
                         previousEventCount = data.recent_events.length;
                     }
+                }
+
+                // Update CLI output
+                if (data.cli_output && data.cli_output.length > 0) {
+                    const cliOutput = document.getElementById('cli-output');
+                    const cliLineCount = document.getElementById('cli-line-count');
+
+                    // Update line count
+                    cliLineCount.textContent = `${data.cli_output.length} lines`;
+
+                    // Update CLI output content
+                    cliOutput.innerHTML = data.cli_output.map(line =>
+                        `<div class="leading-relaxed">${escapeHtml(line)}</div>`
+                    ).join('');
+
+                    // Auto-scroll to bottom
+                    cliOutput.scrollTop = cliOutput.scrollHeight;
                 }
 
             } catch (error) {
